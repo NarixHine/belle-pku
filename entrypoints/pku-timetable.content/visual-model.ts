@@ -104,7 +104,7 @@ function toConflictOverlay(
         hatching: true,
         conflict: false,
         conflictNames: [existingName],
-        conflictLabel: `与 ${existingName}冲突`,
+        conflictLabel: `与「${existingName}」冲突`,
     }
 }
 

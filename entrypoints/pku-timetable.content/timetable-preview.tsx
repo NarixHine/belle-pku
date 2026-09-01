@@ -1,4 +1,4 @@
-import { PreviewBlock } from './PreviewBlock'
+import { PreviewBlock } from './preview-block'
 import type { PreviewModel } from './types'
 
 const days = ['一', '二', '三', '四', '五']
