@@ -38,13 +38,17 @@ jobs:
             - name: Build Firefox extension
               run: bun run zip:firefox
 
+            - name: Prepare release packages
+              run: |
+                  mkdir -p release-packages
+                  cp .output/*-chrome.zip release-packages/
+                  cp .output/*-firefox.zip release-packages/
+
             - name: Upload extension packages
               uses: actions/upload-artifact@v4
               with:
                   name: browser-extension-packages
-                  path: |
-                      .output/belle-pku-*-chrome.zip
-                      .output/belle-pku-*-firefox.zip
+                  path: release-packages/*.zip
                   if-no-files-found: error
                   retention-days: 14
 
@@ -61,7 +65,7 @@ jobs:
               uses: actions/download-artifact@v4
               with:
                   name: browser-extension-packages
-                  path: .output
+                  path: release-packages
 
             - name: Publish release
               env:
@@ -70,5 +74,5 @@ jobs:
                   gh release create "$GITHUB_REF_NAME" \
                       --verify-tag \
                       --generate-notes \
-                      .output/belle-pku-*-chrome.zip \
-                      .output/belle-pku-*-firefox.zip
+                      release-packages/*-chrome.zip \
+                      release-packages/*-firefox.zip
