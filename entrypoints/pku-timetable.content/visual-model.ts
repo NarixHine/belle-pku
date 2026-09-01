@@ -37,11 +37,19 @@ export function createPreviewModel(
         )
         return toLessonBlock(lesson, 'candidate', section.courseName, lessonIndex, conflictNames)
     })
-    // Existing lessons stay as one continuous visual block. Conflict state is
-    // represented by the separate overlay blocks, never by splitting this box.
-    const existingBlocks = visibleExistingLessons.map((lesson, lessonIndex) =>
-        toLessonBlock(lesson, 'existing', lesson.courseName || '已选课程', lessonIndex, []),
-    )
+    // Existing lessons stay as one continuous visual block. Mark the whole
+    // box when it overlaps the candidate so its conflict styling can apply;
+    // the separate overlay still identifies the exact intersection.
+    const existingBlocks = visibleExistingLessons.map((lesson, lessonIndex) => {
+        const conflictNames = Array.from(
+            new Set(
+                visibleCandidateLessons
+                    .filter(candidate => overlapsLesson(candidate, lesson))
+                    .map(() => section.courseName || '待选课程'),
+            ),
+        )
+        return toLessonBlock(lesson, 'existing', lesson.courseName || '已选课程', lessonIndex, conflictNames)
+    })
 
     const conflictOverlays = visibleCandidateLessons.flatMap(candidate =>
         visibleExistingLessons.flatMap(existing =>

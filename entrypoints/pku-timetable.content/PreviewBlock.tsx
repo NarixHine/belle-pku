@@ -20,11 +20,13 @@ export function PreviewBlock({ block }: PreviewBlockProps) {
     const details = block.conflictLabel ?? (block.conflict
         ? `与 ${block.conflictNames.join('、')}冲突`
         : block.label)
-    const visibleText = block.conflict
-        ? ''
-        : block.showLabel
-          ? block.label
-          : ''
+    const visibleText = block.kind === 'conflict-overlay'
+        ? block.conflictLabel ?? ''
+        : block.conflict
+          ? ''
+          : block.showLabel
+            ? block.label
+            : ''
     const className = [
         'lesson-block',
         `lesson-block--${block.kind}`,
@@ -43,7 +45,11 @@ export function PreviewBlock({ block }: PreviewBlockProps) {
             title={details}
             aria-label={ariaLabel}
         >
-            {visibleText && <span class='lesson-block__name'>{visibleText}</span>}
+            {visibleText && (
+                <span class={block.kind === 'conflict-overlay' ? 'lesson-block__conflict' : 'lesson-block__name'}>
+                    {visibleText}
+                </span>
+            )}
         </div>
     )
 }
