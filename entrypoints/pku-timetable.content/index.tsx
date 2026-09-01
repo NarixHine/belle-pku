@@ -4,6 +4,7 @@ import { debugError, debugLog } from './debug'
 import { createHoverController } from './hover-controller'
 import { getCourseTableDiagnostics, parseCourseRow, findSelectableCourseTable } from './parse-course-table'
 import { parseElectedLessons } from './parse-timetable'
+import { calculateOverlayPosition } from './positioning'
 import { TimetablePreview } from './TimetablePreview'
 import type { PreviewModel } from './types'
 import { isSupportedUrl } from './url'
@@ -113,19 +114,7 @@ export default defineContentScript({
                     if (!preview) return
                     const rowRect = sourceRow.getBoundingClientRect()
                     const previewRect = preview.getBoundingClientRect()
-                    const gap = 10
-                    const edge = 12
-                    const left = Math.min(
-                        Math.max(edge, rowRect.left + (rowRect.width - previewRect.width) / 2),
-                        Math.max(edge, window.innerWidth - previewRect.width - edge),
-                    )
-                    const below = rowRect.bottom + gap
-                    const above = rowRect.top - previewRect.height - gap
-                    const top = below + previewRect.height <= window.innerHeight - edge
-                        ? below
-                        : above >= edge
-                          ? above
-                          : Math.max(edge, window.innerHeight - previewRect.height - edge)
+                    const { left, top } = calculateOverlayPosition(rowRect, previewRect)
                     floatingStyle('left', `${Math.round(left)}px`)
                     floatingStyle('top', `${Math.round(top)}px`)
                     floatingStyle('visibility', 'visible')
@@ -200,19 +189,36 @@ export default defineContentScript({
                     },
                 })
 
-                const badgeObserver = new MutationObserver(() => {
-                    // The page replaces table rows during hover. Rebuild badges after
-                    // that replacement, while disconnected to avoid observing our own rebuild.
-                    badgeObserver.disconnect()
-                    refreshBadges()
-                    const table = findSelectableCourseTable()
-                    if (table) badgeObserver.observe(table, { childList: true, subtree: true })
+                let badgeFrame: number | null = null
+                const observeCourseTables = () => {
+                    badgeObserver.observe(document.body, { childList: true, subtree: true })
+                }
+                const badgeObserver = new MutationObserver(records => {
+                    const courseTableChanged = records.some(record => {
+                        if (record.target instanceof Element && record.target.closest('table.datagrid')) {
+                            return true
+                        }
+                        return [...record.addedNodes, ...record.removedNodes].some(node =>
+                            node instanceof Element &&
+                            (node.matches('table.datagrid') || Boolean(node.querySelector('table.datagrid'))),
+                        )
+                    })
+                    if (!courseTableChanged || badgeFrame !== null) return
+                    badgeFrame = ctx.requestAnimationFrame(() => {
+                        badgeFrame = null
+                        // The portal may replace the complete table. Rediscover it while
+                        // disconnected so badge updates do not trigger another refresh.
+                        badgeObserver.disconnect()
+                        if (model && !model.section.sourceRow.isConnected) close()
+                        refreshBadges()
+                        observeCourseTables()
+                    })
                 })
-                const initialTable = findSelectableCourseTable()
-                if (initialTable) badgeObserver.observe(initialTable, { childList: true, subtree: true })
+                observeCourseTables()
 
                 removeRoute = () => {
                     badgeObserver.disconnect()
+                    if (badgeFrame !== null) cancelAnimationFrame(badgeFrame)
                     cleanupHover()
                     ui.remove()
                 }

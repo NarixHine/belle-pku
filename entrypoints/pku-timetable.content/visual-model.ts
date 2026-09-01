@@ -19,10 +19,6 @@ export function createPreviewModel(
     existingLessons: LessonSlot[],
     section: CourseSection,
 ): PreviewModel {
-    // Render each lesson one slot at a time. A lesson can therefore contain
-    // clear slots and conflicting slots without painting the whole lesson as a
-    // conflict. The hypothetical table includes the existing schedule too;
-    // candidate slots are layered above it.
     const visibleExistingLessons = existingLessons.filter(lesson => lesson.dayOfWeek <= 5)
     const visibleCandidateLessons = section.lessons.filter(lesson => lesson.dayOfWeek <= 5)
     // The candidate is always one continuous box. Conflict intersections are
@@ -51,51 +47,26 @@ export function createPreviewModel(
         return toLessonBlock(lesson, 'existing', lesson.courseName || '已选课程', lessonIndex, conflictNames)
     })
 
-    const conflictOverlays = visibleCandidateLessons.flatMap(candidate =>
-        visibleExistingLessons.flatMap(existing =>
+    const conflictOverlays = visibleCandidateLessons.flatMap((candidate, candidateIndex) =>
+        visibleExistingLessons.flatMap((existing, existingIndex) =>
             intersectionRanges(candidate, existing).map(range =>
                 toConflictOverlay(
                     candidate,
                     range.start,
                     range.end,
                     existing.courseName || '已选课程',
+                    candidateIndex,
+                    existingIndex,
                 ),
             ),
         ),
     )
 
-
     return {
         section,
-        blocks: mergeAdjacentBlocks([...existingBlocks, ...candidateBlocks, ...conflictOverlays]),
+        blocks: [...existingBlocks, ...candidateBlocks, ...conflictOverlays],
         conflictCount: conflictOverlays.length,
     }
-}
-
-function mergeAdjacentBlocks(blocks: PreviewBlock[]): PreviewBlock[] {
-    const merged: PreviewBlock[] = []
-    for (const block of blocks) {
-        const previous = merged[merged.length - 1]
-        const canMerge =
-            previous &&
-            previous.kind === block.kind &&
-            previous.column === block.column &&
-            previous.rowStart + previous.rowSpan === block.rowStart &&
-            previous.label === block.label &&
-            previous.location === block.location &&
-            (block.kind === 'existing' || previous.conflict === block.conflict) &&
-            previous.hatching === block.hatching
-        if (canMerge) {
-            previous.rowSpan += block.rowSpan
-            if (block.kind === 'existing') {
-                previous.conflictNames = Array.from(new Set([...previous.conflictNames, ...block.conflictNames]))
-                previous.conflict = previous.conflict || block.conflict
-            }
-            continue
-        }
-        merged.push({ ...block })
-    }
-    return merged
 }
 
 function toLessonBlock(
@@ -115,9 +86,11 @@ function toConflictOverlay(
     startSlot: number,
     endSlot: number,
     existingName: string,
+    candidateIndex: number,
+    existingIndex: number,
 ): PreviewBlock {
     return {
-        id: `conflict-overlay-${candidate.dayOfWeek}-${startSlot}-${endSlot}-${existingName}`,
+        id: `conflict-overlay-${candidateIndex}-${existingIndex}-${candidate.dayOfWeek}-${startSlot}-${endSlot}`,
         column: candidate.dayOfWeek,
         rowStart: startSlot,
         rowSpan: endSlot - startSlot + 1,
@@ -136,33 +109,10 @@ function toConflictOverlay(
 }
 
 function intersectionRanges(a: LessonSlot, b: LessonSlot): Array<{ start: number; end: number }> {
-    if (a.dayOfWeek !== b.dayOfWeek) return []
+    if (a.dayOfWeek !== b.dayOfWeek || !teachingWeeksOverlap(a, b)) return []
     const start = Math.max(1, a.startSlot, b.startSlot)
     const end = Math.min(SLOT_COUNT, a.endSlot, b.endSlot)
     return start <= end ? [{ start, end }] : []
-}
-
-function blocksForLesson(
-    lesson: LessonSlot,
-    kind: PreviewBlock['kind'],
-    label: string,
-    conflictAgainst: LessonSlot[],
-    lessonIndex: number,
-): PreviewBlock[] {
-    const startSlot = Math.max(1, lesson.startSlot)
-    const endSlot = Math.min(SLOT_COUNT, lesson.endSlot)
-
-    return Array.from({ length: Math.max(0, endSlot - startSlot + 1) }, (_, offset) => {
-        const slot = startSlot + offset
-        const conflictNames = Array.from(
-            new Set(
-                conflictAgainst
-                    .filter(other => overlapsSlot(other, lesson.dayOfWeek, slot))
-                    .map(other => other.courseName || '已选课程'),
-            ),
-        )
-        return toBlock(lesson, slot, kind, label, lessonIndex * SLOT_COUNT + offset, conflictNames, offset)
-    })
 }
 
 function toBlock(
@@ -195,12 +145,35 @@ function toBlock(
     }
 }
 
-function overlapsSlot(lesson: LessonSlot, dayOfWeek: CourseSection['lessons'][number]['dayOfWeek'], slot: number): boolean {
-    return lesson.dayOfWeek === dayOfWeek && lesson.startSlot <= slot && slot <= lesson.endSlot
+function overlapsLesson(a: LessonSlot, b: LessonSlot): boolean {
+    return intersectionRanges(a, b).length > 0
 }
 
-function overlapsLesson(a: LessonSlot, b: LessonSlot): boolean {
-    return a.dayOfWeek === b.dayOfWeek && a.startSlot <= b.endSlot && b.startSlot <= a.endSlot
+function teachingWeeksOverlap(a: LessonSlot, b: LessonSlot): boolean {
+    const aRange = parseWeekRange(a.weeks)
+    const bRange = parseWeekRange(b.weeks)
+    if (!aRange || !bRange) return true
+
+    const firstWeek = Math.max(aRange.start, bRange.start)
+    const lastWeek = Math.min(aRange.end, bRange.end)
+    for (let week = firstWeek; week <= lastWeek; week += 1) {
+        if (includesWeek(a.frequency, week) && includesWeek(b.frequency, week)) return true
+    }
+    return false
+}
+
+function parseWeekRange(weeks: string): { start: number; end: number } | null {
+    const match = weeks.match(/^(\d+)(?:[~\-至](\d+))?周$/)
+    if (!match?.[1]) return null
+    const start = Number.parseInt(match[1], 10)
+    const end = Number.parseInt(match[2] || match[1], 10)
+    return start <= end ? { start, end } : null
+}
+
+function includesWeek(frequency: string, week: number): boolean {
+    if (frequency === '单周') return week % 2 === 1
+    if (frequency === '双周') return week % 2 === 0
+    return true
 }
 
 function colorForCourse(courseName: string): string {

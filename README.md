@@ -46,7 +46,7 @@ Expected sequence after reloading and hovering a selectable row:
 ```text
 [Belle PKU] Content script loaded
 [Belle PKU] Shadow UI mounted
-[Belle PKU] Hover controller installed on course badges
+[Belle PKU] Hover controller installed with row pointer delegation
 [Belle PKU] Hover: capture listener received its first mouseover
 [Belle PKU] Hover: selectable row entered
 [Belle PKU] Row parser: candidate parsed
