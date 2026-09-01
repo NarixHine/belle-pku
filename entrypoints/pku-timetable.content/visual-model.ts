@@ -187,7 +187,7 @@ function toBlock(
         kind,
         conflict: conflictNames.length > 0,
         conflictNames,
-        color: kind === 'candidate' ? '#d95f59' : colorForCourse(label),
+        color: kind === 'candidate' && conflictNames.length > 0 ? '#d95f59' : colorForCourse(label),
         showLabel: slotOffset === 0,
         // Hatching is rendered by the separate conflict-overlay block so the
         // underlying existing lesson remains one continuous box.
