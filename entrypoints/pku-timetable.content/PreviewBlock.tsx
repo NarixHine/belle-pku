@@ -17,9 +17,14 @@ export function PreviewBlock({ block }: PreviewBlockProps) {
     // the only conflict detail drawn over its intersection.
     // The preview is a visual schedule only: never paint either the existing
     // lesson name or the candidate lesson name inside the grid.
-    const details = block.conflict
+    const details = block.conflictLabel ?? (block.conflict
         ? `与 ${block.conflictNames.join('、')}冲突`
-        : block.label
+        : block.label)
+    const visibleText = block.conflict
+        ? ''
+        : block.showLabel
+          ? block.label
+          : ''
     const className = [
         'lesson-block',
         `lesson-block--${block.kind}`,
@@ -38,7 +43,7 @@ export function PreviewBlock({ block }: PreviewBlockProps) {
             title={details}
             aria-label={ariaLabel}
         >
-
+            {visibleText && <span class='lesson-block__name'>{visibleText}</span>}
         </div>
     )
 }

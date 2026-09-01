@@ -25,28 +25,33 @@ export function createPreviewModel(
     // candidate slots are layered above it.
     const visibleExistingLessons = existingLessons.filter(lesson => lesson.dayOfWeek <= 5)
     const visibleCandidateLessons = section.lessons.filter(lesson => lesson.dayOfWeek <= 5)
-    const candidateBlocks = visibleCandidateLessons.map((lesson, lessonIndex) =>
-        toLessonBlock(lesson, 'candidate', section.courseName, lessonIndex, []),
-    )
+    // The candidate is always one continuous box. Conflict intersections are
+    // represented by separate overlays and never split or relabel this box.
+    const candidateBlocks = visibleCandidateLessons.map((lesson, lessonIndex) => {
+        const conflictNames = Array.from(
+            new Set(
+                visibleExistingLessons
+                    .filter(existing => overlapsLesson(existing, lesson))
+                    .map(existing => existing.courseName || '已选课程'),
+            ),
+        )
+        return toLessonBlock(lesson, 'candidate', section.courseName, lessonIndex, conflictNames)
+    })
     // Existing lessons stay as one continuous visual block. Conflict state is
     // represented by the separate overlay blocks, never by splitting this box.
-    const existingBlocks = visibleExistingLessons.map((lesson, lessonIndex) => {
-        const conflictNames = visibleCandidateLessons.some(candidate => overlapsLesson(candidate, lesson))
-            ? [section.courseName]
-            : []
-        return toLessonBlock(
-            lesson,
-            'existing',
-            lesson.courseName || '已选课程',
-            lessonIndex,
-            conflictNames,
-        )
-    })
+    const existingBlocks = visibleExistingLessons.map((lesson, lessonIndex) =>
+        toLessonBlock(lesson, 'existing', lesson.courseName || '已选课程', lessonIndex, []),
+    )
 
     const conflictOverlays = visibleCandidateLessons.flatMap(candidate =>
         visibleExistingLessons.flatMap(existing =>
             intersectionRanges(candidate, existing).map(range =>
-                toConflictOverlay(candidate, range.start, range.end, section.courseName),
+                toConflictOverlay(
+                    candidate,
+                    range.start,
+                    range.end,
+                    existing.courseName || '已选课程',
+                ),
             ),
         ),
     )
@@ -101,10 +106,10 @@ function toConflictOverlay(
     candidate: LessonSlot,
     startSlot: number,
     endSlot: number,
-    candidateName: string,
+    existingName: string,
 ): PreviewBlock {
     return {
-        id: `conflict-overlay-${candidate.dayOfWeek}-${startSlot}-${endSlot}`,
+        id: `conflict-overlay-${candidate.dayOfWeek}-${startSlot}-${endSlot}-${existingName}`,
         column: candidate.dayOfWeek,
         rowStart: startSlot,
         rowSpan: endSlot - startSlot + 1,
@@ -113,11 +118,12 @@ function toConflictOverlay(
         location: '',
         weeks: candidate.weeks,
         frequency: candidate.frequency,
-        color: candidateName,
+        color: '#d95f59',
         showLabel: false,
         hatching: true,
         conflict: false,
-        conflictNames: [],
+        conflictNames: [existingName],
+        conflictLabel: `与 ${existingName}冲突`,
     }
 }
 

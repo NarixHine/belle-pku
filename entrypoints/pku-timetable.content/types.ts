@@ -39,6 +39,7 @@ export interface PreviewBlock {
     color: string
     showLabel: boolean
     hatching: boolean
+    conflictLabel?: string
 }
 
 export interface PreviewModel {

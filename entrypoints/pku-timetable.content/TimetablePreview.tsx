@@ -31,6 +31,11 @@ export function TimetablePreview({ model }: TimetablePreviewProps) {
                 {model.blocks.map(block => (
                     <PreviewBlock block={block} key={block.id} />
                 ))}
+                {model.conflictCount > 0 && (
+                    <div class='schedule__conflict-label'>
+                        与 {Array.from(new Set(model.blocks.flatMap(block => block.conflictNames))).join('、')}冲突
+                    </div>
+                )}
             </div>
 
         </section>

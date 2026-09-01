@@ -151,13 +151,31 @@
     font-family: 'SF Mono', 'Menlo', monospace;
 }
 
+.schedule__conflict-label {
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    z-index: 7;
+    max-width: calc(100% - 16px);
+    padding: 2px 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: rgba(255, 247, 245, 0.88);
+    color: var(--belle-danger);
+    font-size: 8px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
 .schedule__canvas {
     z-index: 0;
     grid-column: 2 / 7;
     grid-row: 2 / 14;
     background-image:
-        linear-gradient(to right, var(--belle-line) 1px, transparent 1px),
-        linear-gradient(to bottom, var(--belle-line) 1px, transparent 1px);
+        linear-gradient(to right, rgba(229, 226, 220, 0.4) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(229, 226, 220, 0.4) 1px, transparent 1px);
     background-size:
         calc(100% / 5) 100%,
         100% var(--belle-slot-height);
@@ -179,7 +197,7 @@
 }
 
 .lesson-block--existing {
-    border: 1px solid var(--block-color);
+    border: 1.15px solid var(--block-color);
     background: transparent;
 }
 
@@ -195,8 +213,8 @@
         135deg,
         transparent 0,
         transparent 9px,
-        rgba(165, 76, 67, 0.25) 9px,
-        rgba(165, 76, 67, 0.25) 12px
+        rgba(165, 76, 67, 0.2) 9px,
+        rgba(165, 76, 67, 0.2) 12px
     );
 }
 
@@ -212,7 +230,7 @@
 
 .lesson-block--candidate {
     z-index: 4;
-    border: 1.5px dashed var(--block-color);
+    border: 1.7px dashed var(--block-color);
     background: color-mix(in srgb, var(--block-color) 26%, transparent);
     color: #79521f;
 }
@@ -232,7 +250,8 @@
 }
 
 .lesson-block--candidate.is-conflict {
-    border-color: var(--belle-danger);
+    border-color: #b84742;
+    background: color-mix(in srgb, #d95f59 30%, transparent);
 }
 
 .lesson-block.has-hatching {
