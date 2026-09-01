@@ -1,61 +1,33 @@
-# Belle PKU Timetable
+# Belle PKU
 
-A lightweight WXT, Preact, and TypeScript browser extension that previews a PKU elective course section on the current timetable when its result row badge is hovered.
+> [!TIP]
+> You don't need to read the following `README.md` if you intend to try out Belle PKU. The usage is straightforward enough that you can simply install the extension, jump to your pre-selection page, and start using it. The UI is self-explanatory.
+> 
+> That said, there's an English placement exam tomorrow, so I've got to find something to practice with. Hence the doc!
 
-## Development
+![](image.png)
 
-```bash
-bun install
-bun run dev
-bun run dev:firefox
-bun run typecheck
-bun run build
-bun run build:firefox
-```
+Belle PKU is a lightweight browser extension that improves the interface of the official PKU website. Currently, it **offers a preview of your timetable before you select a course** by inserting a hoverable badge next to each lesson. Expect continuous iterations in the coming days.
 
-Load `.output/chrome-mv3` as an unpacked Chromium extension or `.output/firefox-mv2` as a temporary Firefox add-on.
+> [!WARNING]
+> Belle PKU is only an interface upgrade. It does not (and will not) offer any automation capabilities.
 
-## Behavior
+## Installation Guide
 
-- Runs only on `https://elective.pku.edu.cn/elective2008/.../electiveWork/` routes.
-- Treats the `.datagrid` table whose action header is `取消` as the authoritative `已选列表` and renders its schedules as existing lessons.
-- Uses only the `.datagrid` table whose action header is `预选` as the hover source, so rows in `已选列表` never become candidates.
-- Discovers schedule and identity columns by Chinese header labels rather than fixed indexes.
-- Previews only the section whose conflict badge is hovered. Existing lessons have solid borders; the candidate has a dashed border and spacious diagonal hatching.
-- Marks overlapping candidate meetings as conflicts while leaving the existing block visible below them.
-- Uses one pointer-transparent Shadow DOM overlay, so links, inputs, pagination, and `预选` continue to behave normally.
-- Parses only rows currently in the DOM. It does not fetch other result pages or persist its own selected-course state.
+Download the latest release from the [GitHub releases page](https://github.com/narixhine/belle-pku/releases), and refer to the installation instructions for your browser ([Chrome](https://web-highlights.com/tutorials/browser/chrome/how-to-install-from-local-file) / [Firefox](https://web-highlights.com/tutorials/browser/firefox/how-to-install-from-local-file))
 
-## Manual Smoke Check
+## What it does
 
-- Verify unrelated PKU routes do not create `<belle-pku-timetable>`.
-- Hover the conflict badge for a selectable row.
-- Check single-slot, multi-slot, and multi-meeting sections.
-- Check a conflicting section and a conflict-free section.
-- Replace or append a course row in DevTools and hover it.
-- Check back/forward navigation, narrow viewports, and reduced-motion mode.
-- Confirm portal links, inputs, pagination, and `预选` clicks are unobstructed.
-- Confirm there are no console errors in Chromium or Firefox.
+When you load a pre-selection page on `elective.pku.edu.cn`, a badge is appended to the Class Info column of each lesson, indicating whether the prospective lesson introduces a schedule conflict for your current timetable. Hovering over the badge invokes a hypothetical timetable that visualizes your post-selection schedule, with warnings of conflicts where present. 
 
-## Debugging
+Pre-existent courses with conflicting lesson slots are represented with a translucent fill, while those precise slots are highlighted with slanted patterns.
 
-Open the page's DevTools Console and filter for `[Belle PKU]`. Debug logging is enabled by default and reports URL gating, table discovery, row parsing, existing lessons, and rendering.
+## How it works
 
-Expected sequence after reloading and hovering a selectable row:
+To PKU's credit, all Class Info fields on the PKU elective platform follow a generally consistent and easily parsable format — leading with weeks, followed by the day of the week and closing with time slots. The extension relies on this field to extract schedule information and inject it into the preview.
 
-```text
-[Belle PKU] Content script loaded
-[Belle PKU] Shadow UI mounted
-[Belle PKU] Hover controller installed with badge pointer delegation
-[Belle PKU] Hover: capture listener received its first mouseover
-[Belle PKU] Hover: course badge entered
-[Belle PKU] Row parser: candidate parsed
-[Belle PKU] Existing lessons parsed
-[Belle PKU] Preview rendered
-```
+The extension also leverages the "Already Selected" section on the same page to supply data about pre-existent courses, circumventing invokation of other endpoints. This is crucial for the smooth functioning of the PKU elective system, as the abuse detection system seems to have a strong tendency to flag concurrent requests, an unreliable (!!!) indicator of bot usage that biases significantly toward false positives. Otherwise, your session will get purged as a result, and you are out!
 
-Disable logs for the current tab with `sessionStorage.setItem('belle-pku-debug', '0')`, or re-enable them with `sessionStorage.removeItem('belle-pku-debug')`, then reload the page.
+## Feedback
 
-## Lifecycle
-
-The content script mounts on supported routes, parses the elected schedule, and adds conflict badges to selectable rows. Hovering a badge briefly parses that row and opens the pointer-transparent preview; leaving it closes the preview. Table mutations rebuild badges, route changes tear down the current UI, and invalidation cleans up everything.
+This extension is still under active development. Here and there you may find bugs, missing features and behavior that falls short of expectations. Feedback is greatly appreciated!
