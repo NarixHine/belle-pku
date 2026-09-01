@@ -183,17 +183,31 @@
     background: transparent;
 }
 
+.lesson-block--conflict-overlay {
+    z-index: 5;
+    margin: 4px 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 2px;
+    pointer-events: none;
+    overflow: hidden;
+    background: repeating-linear-gradient(
+        135deg,
+        transparent 0,
+        transparent 9px,
+        rgba(165, 76, 67, 0.25) 9px,
+        rgba(165, 76, 67, 0.25) 12px
+    );
+}
+
 .lesson-block--existing.is-conflict {
-    border-color: var(--belle-danger);
-    background: color-mix(in srgb, var(--belle-danger) 14%, transparent);
+    border-color: var(--block-color);
+    background: transparent;
 }
 
 .lesson-block--candidate.is-conflict {
-    background: color-mix(in srgb, var(--belle-danger) 22%, transparent);
-}
-
-.lesson-block--existing.is-conflict {
-    background: color-mix(in srgb, var(--belle-danger) 14%, transparent);
+    border-color: #b84742;
+    background: color-mix(in srgb, #d95f59 28%, transparent);
 }
 
 .lesson-block--candidate {
@@ -218,21 +232,11 @@
 }
 
 .lesson-block--candidate.is-conflict {
-    border: 2px dashed var(--belle-danger);
+    border-color: var(--belle-danger);
 }
 
-.lesson-block.has-hatching::after {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    content: '';
-    background-image: repeating-linear-gradient(
-        135deg,
-        transparent 0,
-        transparent 9px,
-        rgba(165, 76, 67, 0.25) 9px,
-        rgba(165, 76, 67, 0.25) 12px
-    );
+.lesson-block.has-hatching {
+    /* Hatching is supplied by a separate borderless conflict overlay. */
 }
 
 .lesson-block > span {

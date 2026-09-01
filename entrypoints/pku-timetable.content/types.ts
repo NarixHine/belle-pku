@@ -22,7 +22,7 @@ export interface CourseSection {
     sourceRow: HTMLTableRowElement
 }
 
-export type PreviewBlockKind = 'existing' | 'candidate'
+export type PreviewBlockKind = 'existing' | 'candidate' | 'conflict-overlay'
 
 export interface PreviewBlock {
     id: string

@@ -25,25 +25,37 @@ export function createPreviewModel(
     // candidate slots are layered above it.
     const visibleExistingLessons = existingLessons.filter(lesson => lesson.dayOfWeek <= 5)
     const visibleCandidateLessons = section.lessons.filter(lesson => lesson.dayOfWeek <= 5)
-    const candidateBlocks = visibleCandidateLessons.flatMap((lesson, lessonIndex) =>
-        blocksForLesson(lesson, 'candidate', section.courseName, visibleExistingLessons, lessonIndex),
+    const candidateBlocks = visibleCandidateLessons.map((lesson, lessonIndex) =>
+        toLessonBlock(lesson, 'candidate', section.courseName, lessonIndex, []),
     )
-    const existingBlocks = visibleExistingLessons.flatMap((lesson, lessonIndex) =>
-        blocksForLesson(lesson, 'existing', lesson.courseName || '已选课程', visibleCandidateLessons, lessonIndex),
+    // Existing lessons stay as one continuous visual block. Conflict state is
+    // represented by the separate overlay blocks, never by splitting this box.
+    const existingBlocks = visibleExistingLessons.map((lesson, lessonIndex) => {
+        const conflictNames = visibleCandidateLessons.some(candidate => overlapsLesson(candidate, lesson))
+            ? [section.courseName]
+            : []
+        return toLessonBlock(
+            lesson,
+            'existing',
+            lesson.courseName || '已选课程',
+            lessonIndex,
+            conflictNames,
+        )
+    })
+
+    const conflictOverlays = visibleCandidateLessons.flatMap(candidate =>
+        visibleExistingLessons.flatMap(existing =>
+            intersectionRanges(candidate, existing).map(range =>
+                toConflictOverlay(candidate, range.start, range.end, section.courseName),
+            ),
+        ),
     )
 
-    for (const block of existingBlocks) {
-        const names = candidateBlocks
-            .filter(candidate => candidate.column === block.column && candidate.rowStart === block.rowStart)
-            .map(candidate => candidate.label)
-        block.conflictNames = Array.from(new Set(names))
-        block.conflict = block.conflictNames.length > 0
-    }
 
     return {
         section,
-        blocks: mergeAdjacentBlocks([...existingBlocks, ...candidateBlocks]),
-        conflictCount: candidateBlocks.filter(block => block.conflict).length,
+        blocks: mergeAdjacentBlocks([...existingBlocks, ...candidateBlocks, ...conflictOverlays]),
+        conflictCount: conflictOverlays.length,
     }
 }
 
@@ -58,15 +70,62 @@ function mergeAdjacentBlocks(blocks: PreviewBlock[]): PreviewBlock[] {
             previous.rowStart + previous.rowSpan === block.rowStart &&
             previous.label === block.label &&
             previous.location === block.location &&
-            previous.conflict === block.conflict &&
+            (block.kind === 'existing' || previous.conflict === block.conflict) &&
             previous.hatching === block.hatching
         if (canMerge) {
             previous.rowSpan += block.rowSpan
+            if (block.kind === 'existing') {
+                previous.conflictNames = Array.from(new Set([...previous.conflictNames, ...block.conflictNames]))
+                previous.conflict = previous.conflict || block.conflict
+            }
             continue
         }
         merged.push({ ...block })
     }
     return merged
+}
+
+function toLessonBlock(
+    lesson: LessonSlot,
+    kind: PreviewBlock['kind'],
+    label: string,
+    lessonIndex: number,
+    conflictNames: string[],
+): PreviewBlock {
+    const rowStart = Math.max(1, lesson.startSlot)
+    const endSlot = Math.min(SLOT_COUNT, lesson.endSlot)
+    return toBlock(lesson, rowStart, kind, label, lessonIndex * SLOT_COUNT, conflictNames, 0, Math.max(1, endSlot - rowStart + 1))
+}
+
+function toConflictOverlay(
+    candidate: LessonSlot,
+    startSlot: number,
+    endSlot: number,
+    candidateName: string,
+): PreviewBlock {
+    return {
+        id: `conflict-overlay-${candidate.dayOfWeek}-${startSlot}-${endSlot}`,
+        column: candidate.dayOfWeek,
+        rowStart: startSlot,
+        rowSpan: endSlot - startSlot + 1,
+        kind: 'conflict-overlay',
+        label: '',
+        location: '',
+        weeks: candidate.weeks,
+        frequency: candidate.frequency,
+        color: candidateName,
+        showLabel: false,
+        hatching: true,
+        conflict: false,
+        conflictNames: [],
+    }
+}
+
+function intersectionRanges(a: LessonSlot, b: LessonSlot): Array<{ start: number; end: number }> {
+    if (a.dayOfWeek !== b.dayOfWeek) return []
+    const start = Math.max(1, a.startSlot, b.startSlot)
+    const end = Math.min(SLOT_COUNT, a.endSlot, b.endSlot)
+    return start <= end ? [{ start, end }] : []
 }
 
 function blocksForLesson(
@@ -100,12 +159,13 @@ function toBlock(
     index: number,
     conflictNames: string[],
     slotOffset: number,
+    rowSpan = 1,
 ): PreviewBlock {
     return {
         id: `${kind}-${lesson.dayOfWeek}-${slot}-${index}`,
         column: lesson.dayOfWeek,
         rowStart: slot,
-        rowSpan: 1,
+        rowSpan,
         label,
         location: lesson.location,
         weeks: lesson.weeks,
@@ -113,16 +173,20 @@ function toBlock(
         kind,
         conflict: conflictNames.length > 0,
         conflictNames,
-        color: colorForCourse(label),
+        color: kind === 'candidate' ? '#d95f59' : colorForCourse(label),
         showLabel: slotOffset === 0,
-        // Candidate conflict slots are exactly the candidate/existing overlap;
-        // hatch those cells, not the whole multi-slot lesson.
-        hatching: kind === 'candidate' && conflictNames.length > 0,
+        // Hatching is rendered by the separate conflict-overlay block so the
+        // underlying existing lesson remains one continuous box.
+        hatching: false,
     }
 }
 
 function overlapsSlot(lesson: LessonSlot, dayOfWeek: CourseSection['lessons'][number]['dayOfWeek'], slot: number): boolean {
     return lesson.dayOfWeek === dayOfWeek && lesson.startSlot <= slot && slot <= lesson.endSlot
+}
+
+function overlapsLesson(a: LessonSlot, b: LessonSlot): boolean {
+    return a.dayOfWeek === b.dayOfWeek && a.startSlot <= b.endSlot && b.startSlot <= a.endSlot
 }
 
 function colorForCourse(courseName: string): string {
