@@ -6,11 +6,7 @@
     --belle-existing-line: rgba(47, 52, 55, 0.52);
     --belle-candidate-line: rgba(47, 52, 55, 0.68);
     --belle-danger: #a54c43;
-    --belle-slot-height: clamp(
-        4px,
-        calc((var(--belle-available-height, 328px) - 52px) / 12),
-        23px
-    );
+    --belle-slot-height: clamp(4px, calc((var(--belle-available-height, 328px) - 52px) / 12), 23px);
     color: var(--belle-ink);
     font-family: 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
 }
@@ -152,7 +148,6 @@
 }
 
 .schedule__canvas {
-    position: relative;
     z-index: 0;
     grid-column: 2 / 7;
     grid-row: 2 / 14;
@@ -162,25 +157,6 @@
     background-size:
         calc(100% / 5) 100%,
         100% var(--belle-slot-height);
-}
-
-.schedule__canvas::before,
-.schedule__canvas::after {
-    position: absolute;
-    right: 0;
-    left: 0;
-    z-index: 1;
-    border-top: 1.5px solid rgba(180, 174, 164, 0.72);
-    content: '';
-    pointer-events: none;
-}
-
-.schedule__canvas::before {
-    top: calc(4 * var(--belle-slot-height));
-}
-
-.schedule__canvas::after {
-    top: calc(9 * var(--belle-slot-height));
 }
 
 .lesson-block {

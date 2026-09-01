@@ -14,17 +14,15 @@ export function parseElectedLessons(
 
     const lessons = Array.from(
         table.querySelectorAll<HTMLTableRowElement>(COURSE_ROW_SELECTOR),
-    ).flatMap(
-        row => {
-            const section = parseCourseRow(row)
-            if (!section) return []
+    ).flatMap(row => {
+        const section = parseCourseRow(row)
+        if (!section) return []
 
-            return section.lessons.map(lesson => ({
-                ...lesson,
-                courseName: section.courseName,
-            }))
-        },
-    )
+        return section.lessons.map(lesson => ({
+            ...lesson,
+            courseName: section.courseName,
+        }))
+    })
     debugLog('Existing lessons parsed', { count: lessons.length, lessons })
     return lessons
 }

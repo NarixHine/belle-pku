@@ -11,6 +11,7 @@ interface HoverControllerOptions {
     onLayoutChange: () => void
 }
 
+const COURSE_BADGE_SELECTOR = '[data-belle-course-badge]'
 const COURSE_ROW_SELECTOR = 'tr.datagrid-even, tr.datagrid-odd'
 const HOVER_DELAY = 100
 
@@ -20,7 +21,7 @@ export function createHoverController({
     onClose,
     onLayoutChange,
 }: HoverControllerOptions): () => void {
-    let activeRow: HTMLTableRowElement | null = null
+    let activeBadge: HTMLElement | null = null
     let hoverTimer: number | null = null
     let layoutFrame: number | null = null
     let didLogEventDelivery = false
@@ -32,25 +33,31 @@ export function createHoverController({
 
     const close = () => {
         clearHoverTimer()
-        activeRow = null
+        activeBadge = null
         onClose()
     }
 
-    const getRowFromEvent = (event: MouseEvent): HTMLTableRowElement | null => {
-        const pathRow = event.composedPath().find(
-            node => node instanceof HTMLTableRowElement && node.matches(COURSE_ROW_SELECTOR),
-        )
+    const getBadgeFromEvent = (event: MouseEvent): HTMLElement | null => {
+        const pathBadge = event
+            .composedPath()
+            .find(node => node instanceof HTMLElement && node.matches(COURSE_BADGE_SELECTOR))
+        if (pathBadge instanceof HTMLElement) return pathBadge
         const target = event.target
-        const row = pathRow instanceof HTMLTableRowElement
-            ? pathRow
-            : target instanceof Element
-              ? target.closest<HTMLTableRowElement>(COURSE_ROW_SELECTOR)
-              : null
+        return target instanceof Element ? target.closest<HTMLElement>(COURSE_BADGE_SELECTOR) : null
+    }
+
+    const getRow = (badge: HTMLElement): HTMLTableRowElement | null => {
+        const row = badge.closest<HTMLTableRowElement>(COURSE_ROW_SELECTOR)
         const table = findSelectableCourseTable()
         return row && table?.contains(row) ? row : null
     }
 
-    const handleMouseEnter = (row: HTMLTableRowElement) => {
+    const handleMouseEnter = (badge: HTMLElement) => {
+        const row = getRow(badge)
+        if (!row) {
+            close()
+            return
+        }
         if (!didLogEventDelivery) {
             didLogEventDelivery = true
             debugLog('Hover: capture listener received its first mouseover', {
@@ -59,16 +66,16 @@ export function createHoverController({
                 selectableTableFound: Boolean(findSelectableCourseTable()),
             })
         }
-        if (row === activeRow) return
+        if (badge === activeBadge) return
 
         clearHoverTimer()
-        activeRow = row
-        debugLog('Hover: selectable row entered', {
+        activeBadge = badge
+        debugLog('Hover: course badge entered', {
             rowIndex: row.rowIndex,
             courseCode: row.cells[0]?.textContent?.trim(),
         })
         hoverTimer = ctx.setTimeout(() => {
-            if (activeRow !== row || !row.isConnected) return
+            if (activeBadge !== badge || !row.isConnected) return
             const section = parseCourseRow(row)
             if (!section) {
                 debugWarn('Hover: row was found but could not be parsed', row)
@@ -86,14 +93,15 @@ export function createHoverController({
     }
 
     const handleMouseOver = (event: MouseEvent) => {
-        const row = getRowFromEvent(event)
-        if (!row || row.contains(event.relatedTarget as Node | null)) return
-        handleMouseEnter(row)
+        const badge = getBadgeFromEvent(event)
+        if (!badge || badge.contains(event.relatedTarget as Node | null)) return
+        handleMouseEnter(badge)
     }
 
     const handleMouseOut = (event: MouseEvent) => {
-        const row = getRowFromEvent(event)
-        if (!row || row !== activeRow || row.contains(event.relatedTarget as Node | null)) return
+        const badge = getBadgeFromEvent(event)
+        if (!badge || badge !== activeBadge || badge.contains(event.relatedTarget as Node | null))
+            return
         close()
     }
 
@@ -110,7 +118,7 @@ export function createHoverController({
     ctx.addEventListener(window, 'scroll', scheduleLayout, { passive: true })
     ctx.addEventListener(window, 'resize', scheduleLayout, { passive: true })
 
-    debugLog('Hover controller installed with row pointer delegation')
+    debugLog('Hover controller installed with badge pointer delegation')
 
     return () => {
         close()

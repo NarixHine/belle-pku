@@ -1,6 +1,6 @@
 # Belle PKU Timetable
 
-A lightweight WXT, Preact, and TypeScript browser extension that previews a PKU elective course section on the current timetable when its result row is hovered.
+A lightweight WXT, Preact, and TypeScript browser extension that previews a PKU elective course section on the current timetable when its result row badge is hovered.
 
 ## Development
 
@@ -21,7 +21,7 @@ Load `.output/chrome-mv3` as an unpacked Chromium extension or `.output/firefox-
 - Treats the `.datagrid` table whose action header is `取消` as the authoritative `已选列表` and renders its schedules as existing lessons.
 - Uses only the `.datagrid` table whose action header is `预选` as the hover source, so rows in `已选列表` never become candidates.
 - Discovers schedule and identity columns by Chinese header labels rather than fixed indexes.
-- Previews only the hovered section. Existing lessons have solid borders; the candidate has a dashed border and spacious diagonal hatching.
+- Previews only the section whose conflict badge is hovered. Existing lessons have solid borders; the candidate has a dashed border and spacious diagonal hatching.
 - Marks overlapping candidate meetings as conflicts while leaving the existing block visible below them.
 - Uses one pointer-transparent Shadow DOM overlay, so links, inputs, pagination, and `预选` continue to behave normally.
 - Parses only rows currently in the DOM. It does not fetch other result pages or persist its own selected-course state.
@@ -29,7 +29,7 @@ Load `.output/chrome-mv3` as an unpacked Chromium extension or `.output/firefox-
 ## Manual Smoke Check
 
 - Verify unrelated PKU routes do not create `<belle-pku-timetable>`.
-- Hover the course name, teacher, schedule, and `预选` cells for the same row.
+- Hover the conflict badge for a selectable row.
 - Check single-slot, multi-slot, and multi-meeting sections.
 - Check a conflicting section and a conflict-free section.
 - Replace or append a course row in DevTools and hover it.
@@ -46,12 +46,16 @@ Expected sequence after reloading and hovering a selectable row:
 ```text
 [Belle PKU] Content script loaded
 [Belle PKU] Shadow UI mounted
-[Belle PKU] Hover controller installed with row pointer delegation
+[Belle PKU] Hover controller installed with badge pointer delegation
 [Belle PKU] Hover: capture listener received its first mouseover
-[Belle PKU] Hover: selectable row entered
+[Belle PKU] Hover: course badge entered
 [Belle PKU] Row parser: candidate parsed
 [Belle PKU] Existing lessons parsed
 [Belle PKU] Preview rendered
 ```
 
 Disable logs for the current tab with `sessionStorage.setItem('belle-pku-debug', '0')`, or re-enable them with `sessionStorage.removeItem('belle-pku-debug')`, then reload the page.
+
+## Lifecycle
+
+The content script mounts on supported routes, parses the elected schedule, and adds conflict badges to selectable rows. Hovering a badge briefly parses that row and opens the pointer-transparent preview; leaving it closes the preview. Table mutations rebuild badges, route changes tear down the current UI, and invalidation cleans up everything.

@@ -44,7 +44,13 @@ export function createPreviewModel(
                     .map(() => section.courseName || '待选课程'),
             ),
         )
-        return toLessonBlock(lesson, 'existing', lesson.courseName || '已选课程', lessonIndex, conflictNames)
+        return toLessonBlock(
+            lesson,
+            'existing',
+            lesson.courseName || '已选课程',
+            lessonIndex,
+            conflictNames,
+        )
     })
 
     const conflictOverlays = visibleCandidateLessons.flatMap((candidate, candidateIndex) =>
@@ -78,7 +84,16 @@ function toLessonBlock(
 ): PreviewBlock {
     const rowStart = Math.max(1, lesson.startSlot)
     const endSlot = Math.min(SLOT_COUNT, lesson.endSlot)
-    return toBlock(lesson, rowStart, kind, label, lessonIndex * SLOT_COUNT, conflictNames, 0, Math.max(1, endSlot - rowStart + 1))
+    return toBlock(
+        lesson,
+        rowStart,
+        kind,
+        label,
+        lessonIndex * SLOT_COUNT,
+        conflictNames,
+        0,
+        Math.max(1, endSlot - rowStart + 1),
+    )
 }
 
 function toConflictOverlay(

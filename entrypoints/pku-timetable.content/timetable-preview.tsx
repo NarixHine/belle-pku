@@ -32,7 +32,6 @@ export function TimetablePreview({ model }: TimetablePreviewProps) {
                     <PreviewBlock block={block} key={block.id} />
                 ))}
             </div>
-
         </section>
     )
 }

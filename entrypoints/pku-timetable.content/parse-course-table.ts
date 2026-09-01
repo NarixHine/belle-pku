@@ -26,7 +26,10 @@ export function findElectedCourseTable(): HTMLTableElement | null {
     return findCourseTableByAction('取消', 'cancelCourse.do')
 }
 
-function findCourseTableByAction(actionHeader: string, actionPath: string): HTMLTableElement | null {
+function findCourseTableByAction(
+    actionHeader: string,
+    actionPath: string,
+): HTMLTableElement | null {
     const tables = Array.from(document.querySelectorAll<HTMLTableElement>('table.datagrid'))
     const table =
         tables.find(table => table.querySelector(`a[href*="${actionPath}"]`)) ??

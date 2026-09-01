@@ -2,7 +2,11 @@ import { render } from 'preact'
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root'
 import { debugError, debugLog } from './debug'
 import { createHoverController } from './hover-controller'
-import { getCourseTableDiagnostics, parseCourseRow, findSelectableCourseTable } from './parse-course-table'
+import {
+    getCourseTableDiagnostics,
+    parseCourseRow,
+    findSelectableCourseTable,
+} from './parse-course-table'
 import { parseElectedLessons } from './parse-timetable'
 import { calculateOverlayPosition } from './positioning'
 import { TimetablePreview } from './timetable-preview'
@@ -134,11 +138,17 @@ export default defineContentScript({
                 const refreshBadges = () => {
                     const table = findSelectableCourseTable()
                     if (!table) return
-                    for (const badge of Array.from(document.querySelectorAll<HTMLElement>('[data-belle-course-badge]'))) {
+                    for (const badge of Array.from(
+                        document.querySelectorAll<HTMLElement>('[data-belle-course-badge]'),
+                    )) {
                         badge.remove()
                     }
                     const existing = parseElectedLessons()
-                    for (const row of Array.from(table.querySelectorAll<HTMLTableRowElement>('tr.datagrid-even, tr.datagrid-odd'))) {
+                    for (const row of Array.from(
+                        table.querySelectorAll<HTMLTableRowElement>(
+                            'tr.datagrid-even, tr.datagrid-odd',
+                        ),
+                    )) {
                         const section = parseCourseRow(row)
                         if (!section) continue
                         const conflicts = createPreviewModel(existing, section).conflictCount
@@ -195,12 +205,17 @@ export default defineContentScript({
                 }
                 const badgeObserver = new MutationObserver(records => {
                     const courseTableChanged = records.some(record => {
-                        if (record.target instanceof Element && record.target.closest('table.datagrid')) {
+                        if (
+                            record.target instanceof Element &&
+                            record.target.closest('table.datagrid')
+                        ) {
                             return true
                         }
-                        return [...record.addedNodes, ...record.removedNodes].some(node =>
-                            node instanceof Element &&
-                            (node.matches('table.datagrid') || Boolean(node.querySelector('table.datagrid'))),
+                        return [...record.addedNodes, ...record.removedNodes].some(
+                            node =>
+                                node instanceof Element &&
+                                (node.matches('table.datagrid') ||
+                                    Boolean(node.querySelector('table.datagrid'))),
                         )
                     })
                     if (!courseTableChanged || badgeFrame !== null) return
