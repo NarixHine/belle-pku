@@ -1,6 +1,7 @@
 import { parseScheduleLines, splitHtmlLines } from './parse-schedule'
 import { debugLog, debugWarn } from './debug'
 import type { CoursePagination, CourseSection, LessonSlot, SelectableCourse } from './types'
+import { createPreviewModel } from './visual-model'
 
 interface CourseColumns {
     courseCode: number
@@ -174,7 +175,9 @@ export function parseSelectableCourses(
                     row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
                 actionLink,
                 willingnessInput,
-                conflictCount: countConflicts(existingLessons, section),
+                willingnessMin: willingnessInput?.min || '',
+                willingnessMax: willingnessInput?.max || '',
+                conflictCount: createPreviewModel(existingLessons, section).conflictCount,
             },
         ]
     })
@@ -225,40 +228,6 @@ function getColumnsFromLabels<T extends Record<keyof T, string>>(
 
     const requiredColumns = Object.values(columns) as number[]
     return requiredColumns.every(index => index >= 0) ? columns : null
-}
-
-function countConflicts(existingLessons: LessonSlot[], section: CourseSection): number {
-    return section.lessons.reduce(
-        (count, candidate) =>
-            count +
-            existingLessons.filter(existing => {
-                if (existing.dayOfWeek !== candidate.dayOfWeek) return false
-                if (existing.endSlot < candidate.startSlot || candidate.endSlot < existing.startSlot) {
-                    return false
-                }
-                return weeksOverlap(existing, candidate)
-            }).length,
-        0,
-    )
-}
-
-function weeksOverlap(a: LessonSlot, b: LessonSlot): boolean {
-    const range = (value: string) => {
-        const match = value.match(/^(\d+)(?:[~\-至](\d+))?周$/)
-        if (!match?.[1]) return null
-        return { start: Number(match[1]), end: Number(match[2] || match[1]) }
-    }
-    const aRange = range(a.weeks)
-    const bRange = range(b.weeks)
-    if (!aRange || !bRange) return true
-    const start = Math.max(aRange.start, bRange.start)
-    const end = Math.min(aRange.end, bRange.end)
-    for (let week = start; week <= end; week += 1) {
-        const includes = (frequency: string) =>
-            frequency === '单周' ? week % 2 === 1 : frequency === '双周' ? week % 2 === 0 : true
-        if (includes(a.frequency) && includes(b.frequency)) return true
-    }
-    return false
 }
 
 export function getCourseTableDiagnostics(): object {

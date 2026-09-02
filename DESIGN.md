@@ -1,103 +1,196 @@
+---
+version: alpha
+name: Belle-PKU-OpenCode
+description: |
+  A compact course-selection interface combining OpenCode's terminal-native restraint with Peking University's deep red. Monospaced typography, warm cream canvas, 4px geometry, sparse hairlines, bracket markers, and direct controls organize dense course data without decoration. The timetable remains the core visual instrument.
+colors:
+  primary: "#94070A"
+  primary-hover: "#790609"
+  primary-active: "#610406"
+  on-primary: "#FDFCFC"
+  ink: "#201D1D"
+  body: "#424245"
+  mute: "#646262"
+  ash: "#9A9898"
+  canvas: "#FDFCFC"
+  surface-soft: "#F8F7F7"
+  surface-card: "#F4F1F1"
+  hairline: "rgba(15,0,0,0.12)"
+  hairline-strong: "#646262"
+  danger: "#94070A"
+  danger-soft: "#F8E9E6"
+  progress: "#646262"
+typography:
+  family: "Berkeley Mono, IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace"
+  heading:
+    fontSize: 28px
+    fontWeight: 700
+    lineHeight: 1.25
+  course-heading:
+    fontSize: 18px
+    fontWeight: 700
+    lineHeight: 1.4
+  body:
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 1.5
+  label:
+    fontSize: 12px
+    fontWeight: 500
+    lineHeight: 1.5
+  caption:
+    fontSize: 11px
+    fontWeight: 400
+    lineHeight: 1.5
+rounded:
+  none: 0px
+  sm: 4px
+spacing:
+  xs: 4px
+  sm: 8px
+  md: 12px
+  lg: 16px
+  xl: 24px
+  xxl: 32px
+---
+
 # Belle PKU Design System
 
 ## Product Character
 
-Belle PKU makes course preselection easier to scan and safer to act on. It should feel immediate, calm, friendly, and lightly human without becoming decorative.
+Belle PKU is a course-comparison tool, not a marketing page and not a generic dashboard. It should read like a precise working document: immediate, tidy, calm, and dense only where the academic data requires density.
 
-The visual reference is a focused productivity surface: strong typography, generous whitespace, direct manipulation, restrained color, and almost no ornamental UI. The timetable preview is the core product feature and must remain visible by default.
+OpenCode contributes its monospaced voice, warm monochrome palette, square geometry, hairline structure, and bracket notation. PKU contributes `#94070A` as the sole accent. The timetable preview remains the core feature and is always visible.
 
-## Core Principles
+## Principles
 
-1. Remove anything that does not help users compare courses, detect conflicts, set willingness values, or preselect a course.
-2. Use one narrow, single-column course flow. Keep it wide enough for a legible five-day timetable, but never viewport-wide.
-3. Use surface-based course cards to group one course's identity, timetable, demand, and action. Do not nest decorative cards inside cards.
-4. Avoid ornamental borders, separators, and shadows. Use surface color, spacing, and typography for hierarchy.
-5. Timetable grid lines and progress tracks are functional data encoding and are the exception to the no-divider rule.
-6. Avoid eyebrow-plus-heading patterns. Use one direct heading.
-7. Keep the timetable visible by default. Collapse only the raw portal class and exam prose.
-8. Minimize clicks. Course details, conflicts, capacity, and the primary action must be immediately visible.
-9. Preserve the portal's native links, inputs, pagination, and selection behavior as the source of truth.
-
-## Color
-
-### Brand
-
-- Primary: `#94070A`
-- Primary foreground: `#FFFFFF`
-- Use primary for the preselection action, focus, and small emphasis.
-
-### Neutral Palette
-
-- Page background: `#FFFDFC`
-- Primary text: `#1A1A1A`
-- Secondary text: `#5D5B54`
-- Muted text: `#787671`
-- Course surface: `#FFFFFF`
-- Subtle surface: `#F7F3F1`
-- Secondary surface: `#F5EFED`
-- Input border: `#C8C4BE`
-- Timetable grid: `#E5E3DF`
-
-### Status Colors
-
-- Blue: informational status only.
-- Green: available, synchronized, or completed states only.
-- Red: conflicts, oversubscription, destructive states, deadlines, and primary action only.
-- Do not use purple, gradients, or decorative pastel collections.
+1. Preserve the shortest path from comparison to preselection.
+2. Show course identity, demand, conflict state, timetable, willingness value, and `预选` without hidden navigation.
+3. Use two course columns on wide screens and one column when either timetable would become cramped.
+4. Give each course one hairline outer boundary. Do not nest bordered surfaces inside it.
+5. Use whitespace and type weight before adding color or rules.
+6. Keep raw portal schedule and exam prose behind one native disclosure below the timetable.
+7. Preserve portal links, values, constraints, pagination, events, and actions as the source of truth.
+8. Never alter the cancellation table's presentation.
+9. If parsing fails, leave the native preselection table available.
 
 ## Typography
 
-- Font family: system default with Chinese system fallbacks.
-- Body: 14–16px, regular weight, relaxed line height.
-- Page heading: approximately 28px, medium weight, tight tracking.
-- Course heading: approximately 20–22px, medium weight.
-- Labels: 12px, medium weight.
-- Metadata and hints: 11–13px, muted.
-- Use tabular numerals for course codes, credits, capacity, and counters.
-- Do not use all-caps labels or eyebrow text.
+Use one monospaced family throughout:
+
+```css
+font-family: "Berkeley Mono", "IBM Plex Mono", ui-monospace,
+    "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+```
+
+Berkeley Mono is optional and may not be installed. The fallback stack must remain fully monospaced and support Chinese through the operating system's glyph fallback.
+
+- Page heading: 28px / 700.
+- Course heading: 18px / 700.
+- Body and controls: 14px / 400-500.
+- Labels: 12px / 500.
+- Metadata: 11px / 400.
+- Use tabular numerals for course codes, credits, capacity, page counts, and willingness values.
+- Do not use eyebrow text, italics, ornamental tracking, or a secondary font.
+
+## Color
+
+- Canvas: `#FDFCFC`.
+- Ink: `#201D1D`.
+- Body: `#424245`.
+- Muted: `#646262`.
+- Disabled: `#9A9898`.
+- Soft surface: `#F8F7F7`.
+- Card surface: `#F4F1F1` only for compact metadata, not broad section bands.
+- Hairline: `rgba(15, 0, 0, 0.12)`.
+- PKU red: `#94070A`.
+
+PKU red is reserved for the primary `预选` action, keyboard focus, conflicts, and exceeded capacity. Course links remain ink-colored and underlined. Normal enrollment text and progress are neutral.
+
+Do not use blue, purple, gradients, shadows, large dark surfaces, or decorative pastel collections. The established timetable lesson palette is an explicit functional exception and must not be redesigned.
+
+## Geometry
+
+- All application containers and controls use either `0px` or `4px` radius.
+- Course surfaces use one 1px hairline border and 0px radius.
+- Inputs, buttons, badges, progress bars, and the timetable viewport use 4px radius.
+- No drop shadows.
+- Timetable grid lines and lesson borders encode data and are exempt from the one-border rule.
 
 ## Layout
 
-- Main flow: approximately 74rem maximum, centered with at least 24px desktop gutters.
-- Mobile uses available width with 16px gutters.
-- Course cards form two equal columns on wide desktop screens with 12–16px gaps, collapsing to one column when the timetable would become cramped.
-- Each course uses one neutral outer border. Do not add internal borders or conflict-colored card borders.
-- Course identity and key metrics may use two columns where space permits; mobile collapses to one.
-- The timetable spans the card width and remains visible by default.
-- Raw portal schedule prose uses one native disclosure below the timetable.
-- Keep `已选` before `限数`, with the selected count visually emphasized.
+- Maximum content width: approximately 1180px with 24px desktop gutters.
+- Two equal course columns above 980px; one column below.
+- Mobile gutters: 16px.
+- Course surfaces align to content height rather than stretching to equal heights.
+- Course header order: identity, badges, key metrics.
+- Course body order: timetable, raw-details disclosure, willingness and preselection action.
+- Display `已选 / 限数`, emphasizing `已选` first.
 
-## Shape
+## Components
 
-- Course and filter surfaces use friendly 12–16px corners.
-- Controls use 8–12px corners.
-- Status badges may be fully rounded.
-- Roundness should make the interface approachable, not turn every element into a card.
+### Filters
 
-## Interaction
+- One flat hairline-bounded strip.
+- Search begins with the textual marker `[/]`, not a decorative SVG icon.
+- Inputs and selects use the canvas or soft surface with 4px radius.
+- Focus uses a strong PKU-red border without glow.
 
-- Buttons provide subtle press feedback with `scale(.97)`.
-- Keep routine filtering and sorting instant; do not animate list reordering.
-- Use visible keyboard focus rings.
-- Respect `prefers-reduced-motion`.
-- Native disclosure is preferred for raw schedule information.
+### Course Surface
+
+- One outer hairline, no shadow, no internal card border.
+- Course name remains visibly underlined at rest and ink-colored in every state.
+- Metadata badges are compact square chips with 4px radius.
+- Conflict badge uses PKU red text on a restrained red tint.
+
+### Timetable
+
+- Visible by default.
+- Header and viewport backgrounds are transparent.
+- Preserve the committed lesson-block truth table exactly:
+  - clear existing lessons: transparent fill and solid palette border;
+  - conflicting existing lessons: 24% palette fill;
+  - clear candidates: 26% palette fill and dashed border;
+  - conflicting candidates: 30% red fill and red dashed border;
+  - exact intersections: separate borderless hatch overlay and conflict label.
+- Do not duplicate conflict logic outside the visual model.
+
+### Disclosure
+
+- Native `details`/`summary` only.
+- Prefix closed state with `[+]` and open state with `[-]`.
+- No chevron SVG, boxed accordion, or animation.
+
+### Actions
+
+- Primary `预选`: PKU-red fill, cream text, 4px radius, 36px minimum height.
+- Secondary pagination: canvas fill, ink text, one hairline, 4px radius.
+- Press feedback: `scale(.97)`; no movement animation elsewhere.
+- Disabled controls use ash text and soft surface.
+
+## Responsive Behavior
+
+- Above 980px: two course columns and one horizontal filter strip.
+- 700-980px: one course column; header and filters remain compact.
+- Below 700px: identity and metrics stack; filters use two columns.
+- Below 420px: filters use one column, page count becomes secondary, and the full five-day timetable remains visible.
+- Never introduce horizontal page scrolling.
 
 ## Do
 
-- Keep the interface monochrome with restrained `#94070A` emphasis.
-- Use whitespace and surface changes instead of borders and separators.
-- Keep labels direct and in Chinese.
-- Show timetable conflicts with a status badge and the timetable's established conflict treatment. Keep course-link color neutral.
-- Keep course links visibly underlined at rest.
-- Make the shortest path the default path.
-- Preserve the timetable preview as the core course-comparison tool.
+- Use monospaced typography everywhere.
+- Use bracket markers where they replace an icon or disclosure affordance.
+- Keep PKU red scarce and semantic.
+- Keep timetable behavior and portal behavior authoritative.
+- Prefer fewer components, fewer labels, and shorter copy.
+- Leave the native table visible if replacement data is incomplete.
 
 ## Do Not
 
-- Do not replace the timetable with raw class or exam text.
-- Do not add eyebrow text.
-- Do not add generic dashboard grids or viewport-wide tables.
-- Do not add ornamental borders, divider lines, or shadows.
-- Do not add purple branding, navy marketing bands, gradients, or mesh illustrations.
-- Do not hide required actions behind menus.
-- Do not modify the cancellation table's presentation.
+- Do not imitate OpenCode's marketing hero, dark TUI mockup, ASCII logo, or 96px landing-page spacing.
+- Do not add extra panels, legends, sidebars, tabs, or decorative status rows.
+- Do not add shadows, gradients, pill-shaped controls, large radii, or nonfunctional animation.
+- Do not recolor course links red.
+- Do not change lesson-block backgrounds, overlap rules, hatching, labels, or geometry without an explicit requirement.
+- Do not hide required actions in menus.

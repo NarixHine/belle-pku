@@ -36,6 +36,8 @@ export interface SelectableCourse extends CourseSection {
     detailUrl: string
     actionLink: HTMLAnchorElement
     willingnessInput: HTMLInputElement | null
+    willingnessMin: string
+    willingnessMax: string
     conflictCount: number
 }
 

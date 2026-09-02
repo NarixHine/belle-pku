@@ -57,7 +57,7 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
             <section class='filters' aria-label='筛选与排序'>
                 <label class='search-field'>
                     <span class='sr-only'>搜索课程</span>
-                    <svg viewBox='0 0 20 20' aria-hidden='true'><circle cx='8.5' cy='8.5' r='5.5' /><path d='m13 13 4 4' /></svg>
+                    <span class='search-marker' aria-hidden='true'>[/]</span>
                     <input
                         type='search'
                         value={query}
@@ -177,8 +177,8 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                             <span>意愿值</span>
                             <input
                                 type='number'
-                                min='0'
-                                max='99'
+                                min={course.willingnessMin || undefined}
+                                max={course.willingnessMax || undefined}
                                 value={willingness}
                                 onInput={event => updateWillingness(event.currentTarget.value)}
                                 aria-label={`${course.courseName}意愿值`}

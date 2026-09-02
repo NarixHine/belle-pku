@@ -46,11 +46,18 @@ export default defineContentScript({
                             const table = findSelectableCourseTable()
                             if (!table) return
                             const existingLessons = parseElectedLessons()
+                            const courses = parseSelectableCourses(existingLessons, table)
+                            if (courses.length === 0) {
+                                table.style.removeProperty('display')
+                                table.removeAttribute(HIDDEN_TABLE_ATTRIBUTE)
+                                render(null, container)
+                                return
+                            }
                             table.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                             table.style.setProperty('display', 'none', 'important')
                             render(
                                 <CourseList
-                                    courses={parseSelectableCourses(existingLessons, table)}
+                                    courses={courses}
                                     pagination={parseCoursePagination(table)}
                                     existingLessons={existingLessons}
                                 />,

@@ -15,9 +15,9 @@ Load `.output/chrome-mv3` as an unpacked Chromium extension or `.output/firefox-
 
 - Runs only on `https://elective.pku.edu.cn/elective2008/.../electiveWork/` routes.
 - Treats the `.datagrid` table whose action header is `取消` as the authoritative `已选列表` for conflict detection, without changing its presentation.
-- Replaces only the `.datagrid` table whose action header is `预选` with a narrow, single-column card list.
+- Replaces only the `.datagrid` table whose action header is `预选` with a two-column course list on wide screens and one column on narrower screens.
 - Discovers all course columns by Chinese header labels rather than fixed indexes.
-- Shows schedule and exam details by default, highlights conflicting course names, and visualizes demand against capacity.
+- Shows the visual timetable by default, keeps raw schedule and exam text in a disclosure, and visualizes conflicts and demand against capacity.
 - Proxies willingness inputs, course links, preselection actions, and pagination to the portal's original controls.
 - Supports keyword, category, and availability filters plus availability, demand, and credit sorting.
 - Parses only rows currently in the DOM. It does not fetch other result pages or persist its own selected-course state.
@@ -28,7 +28,7 @@ Load `.output/chrome-mv3` as an unpacked Chromium extension or `.output/firefox-
 - Check keyword/category/availability filters and each sorting option.
 - Check single-slot, multi-slot, multi-meeting, and exam-only sections.
 - Check conflict styling and capacity progress for under- and over-subscribed courses.
-- Replace or append a course row in DevTools and hover it.
+- Replace or append a course row in DevTools and confirm the course list redraws.
 - Check back/forward navigation, narrow viewports, and reduced-motion mode.
 - Confirm course links, willingness inputs, pagination, and `预选` proxy to the portal controls.
 - Confirm there are no console errors in Chromium or Firefox.
