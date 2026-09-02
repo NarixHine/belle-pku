@@ -1,6 +1,6 @@
 import { parseScheduleLines, splitHtmlLines } from './parse-schedule'
 import { debugLog, debugWarn } from './debug'
-import type { CourseSection } from './types'
+import type { CoursePagination, CourseSection, LessonSlot, SelectableCourse } from './types'
 
 interface CourseColumns {
     courseCode: number
@@ -10,12 +10,37 @@ interface CourseColumns {
     info: number
 }
 
+interface SelectableCourseColumns extends CourseColumns {
+    category: number
+    credits: number
+    weeklyHours: number
+    department: number
+    grade: number
+    pnp: number
+    capacity: number
+    willingness: number
+    action: number
+}
+
 const columnLabels: Record<keyof CourseColumns, string> = {
     courseCode: '课程号',
     courseName: '课程名',
     teacher: '教师',
     sectionNumber: '班号',
     info: '上课/考试信息',
+}
+
+const selectableColumnLabels: Record<keyof SelectableCourseColumns, string> = {
+    ...columnLabels,
+    category: '课程类别',
+    credits: '学分',
+    weeklyHours: '周学时',
+    department: '开课单位',
+    grade: '年级',
+    pnp: '自选P/NP',
+    capacity: '限数/已选',
+    willingness: '意愿值',
+    action: '预选',
 }
 
 export function findSelectableCourseTable(): HTMLTableElement | null {
@@ -82,8 +107,8 @@ export function parseCourseRow(row: HTMLTableRowElement): CourseSection | null {
     }
     const scheduleLines = splitHtmlLines(infoCell)
     const lessons = parseScheduleLines(scheduleLines)
-    if (!courseName || lessons.length === 0) {
-        debugWarn('Row parser: no lesson lines parsed', {
+    if (!courseName) {
+        debugWarn('Row parser: course name is missing', {
             courseCode,
             courseName,
             scheduleLines,
@@ -108,7 +133,83 @@ export function parseCourseRow(row: HTMLTableRowElement): CourseSection | null {
     return section
 }
 
+export function parseSelectableCourses(
+    existingLessons: LessonSlot[],
+    table: HTMLTableElement | null = findSelectableCourseTable(),
+): SelectableCourse[] {
+    if (!table) return []
+    const columns = getColumnsFromLabels(table, selectableColumnLabels)
+    if (!columns) return []
+
+    return Array.from(
+        table.querySelectorAll<HTMLTableRowElement>('tr.datagrid-even, tr.datagrid-odd'),
+    ).flatMap(row => {
+        const section = parseCourseRow(row)
+        const actionLink = row.querySelector<HTMLAnchorElement>('a[href*="electCourse.do"]')
+        if (!section || !actionLink) return []
+
+        const [capacity = 0, selected = 0] = cellText(row, columns.capacity)
+            .split('/')
+            .map(value => Number.parseInt(value.trim(), 10) || 0)
+        const willingnessCell = row.cells[columns.willingness]
+        const willingnessInput = willingnessCell?.querySelector<HTMLInputElement>('input') ?? null
+        const scheduleLines = splitHtmlLines(section.infoCell).filter(
+            line => !line.includes('data-belle-course-badge'),
+        )
+
+        return [
+            {
+                ...section,
+                category: cellText(row, columns.category),
+                credits: Number.parseFloat(cellText(row, columns.credits)) || 0,
+                weeklyHours: Number.parseFloat(cellText(row, columns.weeklyHours)) || 0,
+                department: cellText(row, columns.department),
+                grade: cellText(row, columns.grade),
+                pnp: formatPnp(cellText(row, columns.pnp)),
+                capacity,
+                selected,
+                willingness: willingnessInput?.value || cellText(row, columns.willingness),
+                scheduleLines,
+                detailUrl:
+                    row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
+                actionLink,
+                willingnessInput,
+                conflictCount: countConflicts(existingLessons, section),
+            },
+        ]
+    })
+}
+
+export function parseCoursePagination(table: HTMLTableElement): CoursePagination | null {
+    const footerText = Array.from(table.rows)
+        .map(row => row.textContent ?? '')
+        .find(text => /Page\s+\d+\s+of\s+\d+/i.test(text))
+    const match = footerText?.match(/Page\s+(\d+)\s+of\s+(\d+)/i)
+    if (!match?.[1] || !match[2]) return null
+
+    const links = Array.from(table.querySelectorAll<HTMLAnchorElement>('a'))
+    return {
+        currentPage: Number.parseInt(match[1], 10),
+        totalPages: Number.parseInt(match[2], 10),
+        nextLink: links.find(link => link.textContent?.trim() === 'Next') ?? null,
+        lastLink: links.find(link => link.textContent?.trim() === 'Last') ?? null,
+        pageSelect: table.querySelector<HTMLSelectElement>('select[name="netui_row"]'),
+    }
+}
+
+function formatPnp(value: string): string {
+    if (!value) return ''
+    return /P\s*\/\s*NP/i.test(value) ? value : `${value} P/NP`
+}
+
 function getColumns(table: HTMLTableElement): CourseColumns | null {
+    return getColumnsFromLabels(table, columnLabels)
+}
+
+function getColumnsFromLabels<T extends Record<keyof T, string>>(
+    table: HTMLTableElement,
+    labels: T,
+): { [Key in keyof T]: number } | null {
     const header = Array.from(table.rows).find(row => row.querySelector('th'))
     if (!header) return null
 
@@ -116,14 +217,48 @@ function getColumns(table: HTMLTableElement): CourseColumns | null {
         (cell.textContent ?? '').replace(/\s+/g, '').trim(),
     )
     const columns = Object.fromEntries(
-        Object.entries(columnLabels).map(([key, label]) => [
+        Object.entries(labels).map(([key, label]) => [
             key,
-            headers.findIndex(headerText => headerText.includes(label)),
+            headers.findIndex(headerText => headerText.includes(String(label))),
         ]),
-    ) as unknown as CourseColumns
+    ) as { [Key in keyof T]: number }
 
-    const requiredColumns = Object.values(columns)
+    const requiredColumns = Object.values(columns) as number[]
     return requiredColumns.every(index => index >= 0) ? columns : null
+}
+
+function countConflicts(existingLessons: LessonSlot[], section: CourseSection): number {
+    return section.lessons.reduce(
+        (count, candidate) =>
+            count +
+            existingLessons.filter(existing => {
+                if (existing.dayOfWeek !== candidate.dayOfWeek) return false
+                if (existing.endSlot < candidate.startSlot || candidate.endSlot < existing.startSlot) {
+                    return false
+                }
+                return weeksOverlap(existing, candidate)
+            }).length,
+        0,
+    )
+}
+
+function weeksOverlap(a: LessonSlot, b: LessonSlot): boolean {
+    const range = (value: string) => {
+        const match = value.match(/^(\d+)(?:[~\-至](\d+))?周$/)
+        if (!match?.[1]) return null
+        return { start: Number(match[1]), end: Number(match[2] || match[1]) }
+    }
+    const aRange = range(a.weeks)
+    const bRange = range(b.weeks)
+    if (!aRange || !bRange) return true
+    const start = Math.max(aRange.start, bRange.start)
+    const end = Math.min(aRange.end, bRange.end)
+    for (let week = start; week <= end; week += 1) {
+        const includes = (frequency: string) =>
+            frequency === '单周' ? week % 2 === 1 : frequency === '双周' ? week % 2 === 0 : true
+        if (includes(a.frequency) && includes(b.frequency)) return true
+    }
+    return false
 }
 
 export function getCourseTableDiagnostics(): object {

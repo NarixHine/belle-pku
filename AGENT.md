@@ -16,6 +16,7 @@
 ## Package Manager
 
 - Always use Bun. Do not use npm, pnpm, or yarn for project commands.
+- Always use Kamod UI as the UI library.
 - The repository lockfile is `bun.lock`; keep it in sync with dependency changes.
 - Install dependencies with `bun install`.
 - Run package scripts with `bun run <script>`.

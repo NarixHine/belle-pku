@@ -1,0 +1,218 @@
+import { useState } from 'preact/hooks'
+import { TimetablePreview } from './timetable-preview'
+import type { CoursePagination, LessonSlot, SelectableCourse } from './types'
+import { createPreviewModel } from './visual-model'
+
+interface CourseListProps {
+    courses: SelectableCourse[]
+    pagination: CoursePagination | null
+    existingLessons: LessonSlot[]
+}
+
+type SortKey = 'default' | 'availability' | 'demand' | 'credits'
+
+export function CourseList({ courses, pagination, existingLessons }: CourseListProps) {
+    const [query, setQuery] = useState('')
+    const [category, setCategory] = useState('全部类别')
+    const [availability, setAvailability] = useState('全部名额')
+    const [sort, setSort] = useState<SortKey>('default')
+    const categories = Array.from(new Set(courses.map(course => course.category).filter(Boolean)))
+    const filteredCourses = (() => {
+        const normalizedQuery = query.trim().toLocaleLowerCase()
+        return courses
+            .filter(course => {
+                const matchesQuery =
+                    !normalizedQuery ||
+                    [course.courseName, course.courseCode, course.teacher, course.department].some(
+                        value => value.toLocaleLowerCase().includes(normalizedQuery),
+                    )
+                const matchesCategory = category === '全部类别' || course.category === category
+                const ratio = course.capacity ? course.selected / course.capacity : 0
+                const matchesAvailability =
+                    availability === '全部名额' ||
+                    (availability === '尚有名额' && course.selected < course.capacity) ||
+                    (availability === '竞争激烈' && ratio >= 1)
+                return matchesQuery && matchesCategory && matchesAvailability
+            })
+            .sort((a, b) => {
+                if (sort === 'availability') return b.capacity - b.selected - (a.capacity - a.selected)
+                if (sort === 'demand') {
+                    return b.selected / Math.max(1, b.capacity) - a.selected / Math.max(1, a.capacity)
+                }
+                if (sort === 'credits') return b.credits - a.credits
+                return 0
+            })
+    })()
+
+    return (
+        <main class='course-browser'>
+            <header class='course-browser__header'>
+                <div>
+                    <h1>本学期可选课程</h1>
+                    <p class='course-browser__summary'>共 {courses.length} 个班级，选择适合你的时间与名额。</p>
+                </div>
+                <span class='result-count' aria-live='polite'>显示 {filteredCourses.length} 门</span>
+            </header>
+
+            <section class='filters' aria-label='筛选与排序'>
+                <label class='search-field'>
+                    <span class='sr-only'>搜索课程</span>
+                    <svg viewBox='0 0 20 20' aria-hidden='true'><circle cx='8.5' cy='8.5' r='5.5' /><path d='m13 13 4 4' /></svg>
+                    <input
+                        type='search'
+                        value={query}
+                        onInput={event => setQuery(event.currentTarget.value)}
+                        placeholder='搜索课程、教师或课程号'
+                    />
+                </label>
+                <label>
+                    <span class='sr-only'>课程类别</span>
+                    <select value={category} onChange={event => setCategory(event.currentTarget.value)}>
+                        <option>全部类别</option>
+                        {categories.map(value => <option key={value}>{value}</option>)}
+                    </select>
+                </label>
+                <label>
+                    <span class='sr-only'>名额状态</span>
+                    <select value={availability} onChange={event => setAvailability(event.currentTarget.value)}>
+                        <option>全部名额</option>
+                        <option>尚有名额</option>
+                        <option>竞争激烈</option>
+                    </select>
+                </label>
+                <label>
+                    <span class='sr-only'>排序</span>
+                    <select value={sort} onChange={event => setSort(event.currentTarget.value as SortKey)}>
+                        <option value='default'>默认排序</option>
+                        <option value='availability'>余量优先</option>
+                        <option value='demand'>竞争度优先</option>
+                        <option value='credits'>学分从高到低</option>
+                    </select>
+                </label>
+            </section>
+
+            {filteredCourses.length ? (
+                <section class='course-list' aria-label='课程列表'>
+                    {filteredCourses.map(course => <CourseCard course={course} existingLessons={existingLessons} key={course.id} />)}
+                </section>
+            ) : (
+                <section class='empty-state'>
+                    <h2>没有符合条件的课程</h2>
+                    <p>减少筛选条件或尝试其他关键词。</p>
+                    <button type='button' onClick={() => { setQuery(''); setCategory('全部类别'); setAvailability('全部名额') }}>清除筛选</button>
+                </section>
+            )}
+            {pagination && pagination.totalPages > 1 ? <Pagination pagination={pagination} /> : null}
+        </main>
+    )
+}
+
+function CourseCard({ course, existingLessons }: { course: SelectableCourse; existingLessons: LessonSlot[] }) {
+    const [willingness, setWillingness] = useState(course.willingness)
+    const demand = course.capacity ? course.selected / course.capacity : 0
+    const progress = Math.min(100, demand * 100)
+    const overCapacity = demand >= 1
+    const badges = [
+        course.teacher,
+        course.sectionNumber ? `${course.sectionNumber} 班` : '',
+        course.grade ? `${course.grade} 级` : '',
+        course.pnp,
+    ].filter(Boolean)
+
+    const updateWillingness = (value: string) => {
+        setWillingness(value)
+        if (!course.willingnessInput) return
+        course.willingnessInput.value = value
+        course.willingnessInput.dispatchEvent(new Event('input', { bubbles: true }))
+        course.willingnessInput.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    return (
+        <article class='course-card'>
+            <div class='course-card__top'>
+                <div class='course-identity'>
+                    <div class='course-kicker'>
+                        <span>{course.courseCode}</span>
+                        <span aria-hidden='true'>·</span>
+                        <span>{course.category}</span>
+                        <span aria-hidden='true'>·</span>
+                        <span>{course.department}</span>
+                    </div>
+                    <h2>
+                        {course.detailUrl ? <a href={course.detailUrl} target='_blank' rel='noreferrer'>{course.courseName}</a> : course.courseName}
+                    </h2>
+                    <div class='badges' aria-label='课程附加信息'>
+                        {badges.map(badge => <span class='badge' key={badge}>{badge}</span>)}
+                        {course.conflictCount ? <span class='badge badge--danger'>{course.conflictCount} 处冲突</span> : null}
+                    </div>
+                </div>
+
+                <div class='primary-metrics'>
+                    <div class='metric metric--compact'>
+                        <span class='metric__label'>学分 / 周学时</span>
+                        <strong>{formatNumber(course.credits)} <small>/ {formatNumber(course.weeklyHours)}</small></strong>
+                    </div>
+                    <div class='metric metric--capacity'>
+                        <span class='metric__label'>已选 / 限数</span>
+                        <strong class={overCapacity ? 'is-danger' : ''}>{course.selected} <small>/ {course.capacity}</small></strong>
+                        <div class='progress' role='progressbar' aria-label='已选人数占限数比例' aria-valuemin={0} aria-valuemax={course.capacity} aria-valuenow={course.selected}>
+                            <span class={overCapacity ? 'is-over' : ''} style={{ width: `${progress}%` }} />
+                        </div>
+                        <span class='metric__hint'>{overCapacity ? `超出限数 ${course.selected - course.capacity} 人` : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class='course-card__schedule'>
+                <TimetablePreview model={createPreviewModel(existingLessons, course)} />
+                <details class='raw-schedule'>
+                    <summary>查看详细时间与考试信息</summary>
+                    <div>{course.scheduleLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
+                </details>
+            </div>
+            <div class='course-card__actions'>
+                <div class='course-actions'>
+                    {course.willingnessInput ? (
+                        <label class='willingness'>
+                            <span>意愿值</span>
+                            <input
+                                type='number'
+                                min='0'
+                                max='99'
+                                value={willingness}
+                                onInput={event => updateWillingness(event.currentTarget.value)}
+                                aria-label={`${course.courseName}意愿值`}
+                            />
+                        </label>
+                    ) : <span class='recommended'>{course.willingness || '推荐'}</span>}
+                    <button type='button' class='select-button' onClick={() => course.actionLink.click()}>预选</button>
+                </div>
+            </div>
+        </article>
+    )
+}
+
+function Pagination({ pagination }: { pagination: CoursePagination }) {
+    const goToPage = (page: number) => {
+        if (!pagination.pageSelect) return
+        const option = pagination.pageSelect.options.item(page - 1)
+        if (!option) return
+        pagination.pageSelect.value = option.value
+        pagination.pageSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    return (
+        <nav class='pagination' aria-label='课程分页'>
+            <span>第 {pagination.currentPage} / {pagination.totalPages} 页</span>
+            <div>
+                <button type='button' disabled={pagination.currentPage <= 1} onClick={() => goToPage(pagination.currentPage - 1)}>上一页</button>
+                <button type='button' disabled={!pagination.nextLink} onClick={() => pagination.nextLink?.click()}>下一页</button>
+                <button type='button' disabled={!pagination.lastLink} onClick={() => pagination.lastLink?.click()}>末页</button>
+            </div>
+        </nav>
+    )
+}
+
+function formatNumber(value: number): string {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
