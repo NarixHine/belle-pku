@@ -150,11 +150,11 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                 <div class='primary-metrics'>
                     <div class='metric metric--compact'>
                         <span class='metric__label'>学分 / 周学时</span>
-                        <strong>{formatNumber(course.credits)} <small>/ {formatNumber(course.weeklyHours)}</small></strong>
+                        <strong><span>{formatNumber(course.credits)}</span><small><span>/</span>{formatNumber(course.weeklyHours)}</small></strong>
                     </div>
                     <div class='metric metric--capacity'>
                         <span class='metric__label'>已选 / 限数</span>
-                        <strong class={overCapacity ? 'is-danger' : ''}>{course.selected} <small>/ {course.capacity}</small></strong>
+                        <strong class={overCapacity ? 'is-danger' : ''}><span>{course.selected}</span><small><span>/</span>{course.capacity}</small></strong>
                         <div class='progress' role='progressbar' aria-label='已选人数占限数比例' aria-valuemin={0} aria-valuemax={course.capacity} aria-valuenow={course.selected}>
                             <span class={overCapacity ? 'is-over' : ''} style={{ width: `${progress}%` }} />
                         </div>
@@ -184,7 +184,7 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                                 aria-label={`${course.courseName}意愿值`}
                             />
                         </label>
-                    ) : <span class='recommended'>{course.willingness || '推荐'}</span>}
+                    ) : <span class='recommended'></span>}
                     <button type='button' class='select-button' onClick={() => course.actionLink.click()}>预选</button>
                 </div>
             </div>

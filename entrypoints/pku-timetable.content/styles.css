@@ -1,3 +1,9 @@
+@import '@fontsource/dm-mono/latin-400.css';
+@import '@fontsource/dm-mono/latin-500.css';
+@import '@fontsource/noto-sans-sc/chinese-simplified-400.css';
+@import '@fontsource/noto-sans-sc/chinese-simplified-500.css';
+@import '@fontsource/noto-sans-sc/chinese-simplified-700.css';
+
 :host {
     --ink: #201d1d;
     --body: #424245;
@@ -15,10 +21,16 @@
     --danger-soft: #f8e9e6;
     display: block;
     color: var(--ink);
-    font-family: 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo,
-        Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-family: 'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco,
+        Consolas, 'Liberation Mono', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
+}
+
+:host,
+:host * {
+    font-family: 'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco,
+        Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
 *,
@@ -113,7 +125,6 @@ input,
 select {
     height: 36px;
     border: 1px solid var(--hairline);
-    border-radius: 4px;
     outline: none;
     background: var(--surface-soft);
     color: var(--ink);
@@ -187,7 +198,6 @@ select:focus {
 }
 
 .course-identity h2 a:focus-visible {
-    border-radius: 2px;
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
@@ -204,7 +214,6 @@ select:focus {
 }
 
 .badge {
-    border-radius: 4px;
     padding: 2px 6px;
     background: var(--surface-card);
     color: var(--muted);
@@ -233,7 +242,9 @@ select:focus {
 }
 
 .metric strong {
-    display: block;
+    display: flex;
+    align-items: baseline;
+    gap: 0.2em;
     color: var(--ink);
     font-size: 18px;
     font-weight: 700;
@@ -246,6 +257,9 @@ select:focus {
 }
 
 .metric strong small {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2em;
     color: var(--muted);
     font-size: 12px;
     font-weight: 400;
@@ -255,14 +269,12 @@ select:focus {
     height: 4px;
     margin-top: 7px;
     overflow: hidden;
-    border-radius: 4px;
     background: var(--surface-card);
 }
 
 .progress span {
     display: block;
     height: 100%;
-    border-radius: inherit;
     background: var(--muted);
 }
 
@@ -285,7 +297,6 @@ select:focus {
 .preview {
     width: 100%;
     overflow: hidden;
-    border-radius: 4px;
     background: transparent;
 }
 
@@ -349,7 +360,6 @@ select:focus {
     min-width: 0;
     margin: 2px 3px;
     overflow: hidden;
-    border-radius: 4px;
     padding: 4px 5px;
     color: #405440;
     font-size: 9px;
@@ -383,7 +393,6 @@ select:focus {
     margin: 4px 5px;
     overflow: hidden;
     border: 0;
-    border-radius: 2px;
     padding: 0;
     pointer-events: none;
     background: repeating-linear-gradient(
@@ -409,7 +418,6 @@ select:focus {
     max-width: calc(100% - 4px);
     margin: 2px;
     overflow: hidden;
-    border-radius: 2px;
     padding: 2px 4px;
     background: rgba(255, 247, 245, 0.88);
     color: var(--danger);
@@ -503,7 +511,6 @@ select:focus {
 .empty-state button {
     height: 36px;
     border: 1px solid var(--accent);
-    border-radius: 4px;
     padding: 0 16px;
     background: var(--accent);
     color: var(--canvas);
@@ -568,7 +575,6 @@ select:focus {
 .pagination button {
     min-height: 36px;
     border: 1px solid var(--hairline);
-    border-radius: 4px;
     padding: 0 10px;
     background: var(--canvas);
     color: var(--ink);
@@ -617,7 +623,6 @@ select:focus {
         inset: -3px;
         content: '';
         border: 1px solid color-mix(in srgb, var(--block-color) 72%, #fff);
-        border-radius: 4px;
         pointer-events: none;
     }
 }
