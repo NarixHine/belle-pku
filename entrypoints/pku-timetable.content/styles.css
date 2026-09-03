@@ -28,16 +28,18 @@
     --danger-soft: #f8e9e6;
     display: block;
     color: var(--ink);
-    font-family: 'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco,
-        Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-family:
+        'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
+        'Liberation Mono', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
 }
 
 :host,
 :host * {
-    font-family: 'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco,
-        Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-family:
+        'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
+        'Liberation Mono', 'Courier New', monospace;
 }
 
 *,
@@ -156,7 +158,9 @@ select {
     outline: none;
     background: var(--surface-soft);
     color: var(--ink);
-    transition: border-color 140ms ease, background-color 140ms ease;
+    transition:
+        border-color 140ms ease,
+        background-color 140ms ease;
 }
 
 .search-field input {
@@ -167,11 +171,16 @@ select {
 select {
     appearance: none;
     padding: 0 40px 0 10px;
-    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
         linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-    background-position: calc(100% - 16px) 15px, calc(100% - 11px) 15px;
+    background-position:
+        calc(100% - 16px) 15px,
+        calc(100% - 11px) 15px;
     background-repeat: no-repeat;
-    background-size: 5px 5px, 5px 5px;
+    background-size:
+        5px 5px,
+        5px 5px;
     cursor: pointer;
 }
 
@@ -201,7 +210,7 @@ select:focus {
 .elected-section__header h2 {
     color: var(--ink);
     font-family: 'SongKe', 'Noto Sans SC', sans-serif;
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 700;
 }
 
@@ -583,7 +592,6 @@ select:focus {
     gap: 8px;
 }
 
-
 .select-button,
 .empty-state button {
     height: 36px;
@@ -593,7 +601,10 @@ select:focus {
     color: var(--canvas);
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease-out;
+    transition:
+        background-color 140ms ease,
+        border-color 140ms ease,
+        transform 120ms ease-out;
 }
 
 .select-button:hover,
@@ -611,7 +622,10 @@ select:focus {
     color: var(--ink);
     font-weight: 500;
     cursor: pointer;
-    transition: border-color 140ms ease, background-color 140ms ease, transform 120ms ease-out;
+    transition:
+        border-color 140ms ease,
+        background-color 140ms ease,
+        transform 120ms ease-out;
 }
 
 .cancel-button:hover {
@@ -683,7 +697,10 @@ select:focus {
     background: var(--canvas);
     color: var(--ink);
     cursor: pointer;
-    transition: border-color 140ms ease, background-color 140ms ease, transform 120ms ease-out;
+    transition:
+        border-color 140ms ease,
+        background-color 140ms ease,
+        transform 120ms ease-out;
 }
 
 .pagination button:hover:not(:disabled) {

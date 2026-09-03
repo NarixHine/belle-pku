@@ -2,7 +2,7 @@
 
 > [!TIP]
 > You don't need to read the following `README.md` if you intend to try out Belle PKU. The usage is straightforward enough that you can simply install the extension, jump to your pre-selection page, and start using it. The UI is self-explanatory.
-> 
+>
 > That said, there's an English placement exam tomorrow, so I've got to find something to practice with. Hence the doc!
 
 ![](image.png)
@@ -18,7 +18,7 @@ Download the latest release from the [GitHub releases page](https://github.com/n
 
 ## What it does
 
-When you load a pre-selection page on `elective.pku.edu.cn`, a badge is appended to the Class Info column of each lesson, indicating whether the prospective lesson introduces a schedule conflict for your current timetable. Hovering over the badge invokes a hypothetical timetable that visualizes your post-selection schedule, with warnings of conflicts where present. 
+When you load a pre-selection page on `elective.pku.edu.cn`, a badge is appended to the Class Info column of each lesson, indicating whether the prospective lesson introduces a schedule conflict for your current timetable. Hovering over the badge invokes a hypothetical timetable that visualizes your post-selection schedule, with warnings of conflicts where present.
 
 Pre-existent courses with conflicting lesson slots are represented with a translucent fill, while those precise slots are highlighted with slanted patterns.
 

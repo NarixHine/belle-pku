@@ -2,56 +2,56 @@
 version: alpha
 name: Belle-PKU-OpenCode
 description: |
-  A compact course-selection interface combining OpenCode's terminal-native restraint with Peking University's deep red. Monospaced typography, warm cream canvas, 4px geometry, sparse hairlines, bracket markers, and direct controls organize dense course data without decoration. The timetable remains the core visual instrument.
+    A compact course-selection interface combining OpenCode's terminal-native restraint with Peking University's deep red. Monospaced typography, warm cream canvas, 4px geometry, sparse hairlines, bracket markers, and direct controls organize dense course data without decoration. The timetable remains the core visual instrument.
 colors:
-  primary: "#94070A"
-  primary-hover: "#790609"
-  primary-active: "#610406"
-  on-primary: "#FDFCFC"
-  ink: "#201D1D"
-  body: "#424245"
-  mute: "#646262"
-  ash: "#9A9898"
-  canvas: "#FDFCFC"
-  surface-soft: "#F8F7F7"
-  surface-card: "#F4F1F1"
-  hairline: "rgba(15,0,0,0.12)"
-  hairline-strong: "#646262"
-  danger: "#94070A"
-  danger-soft: "#F8E9E6"
-  progress: "#646262"
+    primary: '#94070A'
+    primary-hover: '#790609'
+    primary-active: '#610406'
+    on-primary: '#FDFCFC'
+    ink: '#201D1D'
+    body: '#424245'
+    mute: '#646262'
+    ash: '#9A9898'
+    canvas: '#FDFCFC'
+    surface-soft: '#F8F7F7'
+    surface-card: '#F4F1F1'
+    hairline: 'rgba(15,0,0,0.12)'
+    hairline-strong: '#646262'
+    danger: '#94070A'
+    danger-soft: '#F8E9E6'
+    progress: '#646262'
 typography:
-  family: "Berkeley Mono, IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace"
-  heading:
-    fontSize: 28px
-    fontWeight: 700
-    lineHeight: 1.25
-  course-heading:
-    fontSize: 18px
-    fontWeight: 700
-    lineHeight: 1.4
-  body:
-    fontSize: 14px
-    fontWeight: 400
-    lineHeight: 1.5
-  label:
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 1.5
-  caption:
-    fontSize: 11px
-    fontWeight: 400
-    lineHeight: 1.5
+    family: 'Berkeley Mono, IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace'
+    heading:
+        fontSize: 28px
+        fontWeight: 700
+        lineHeight: 1.25
+    course-heading:
+        fontSize: 18px
+        fontWeight: 700
+        lineHeight: 1.4
+    body:
+        fontSize: 14px
+        fontWeight: 400
+        lineHeight: 1.5
+    label:
+        fontSize: 12px
+        fontWeight: 500
+        lineHeight: 1.5
+    caption:
+        fontSize: 11px
+        fontWeight: 400
+        lineHeight: 1.5
 rounded:
-  none: 0px
-  sm: 4px
+    none: 0px
+    sm: 4px
 spacing:
-  xs: 4px
-  sm: 8px
-  md: 12px
-  lg: 16px
-  xl: 24px
-  xxl: 32px
+    xs: 4px
+    sm: 8px
+    md: 12px
+    lg: 16px
+    xl: 24px
+    xxl: 32px
 ---
 
 # Belle PKU Design System
@@ -79,9 +79,9 @@ OpenCode contributes its monospaced voice, warm monochrome palette, square geome
 Use one monospaced family throughout:
 
 ```css
-font-family: "Berkeley Mono", "IBM Plex Mono", ui-monospace,
-    "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+font-family:
+    'Berkeley Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
 ```
 
 Berkeley Mono is optional and may not be installed. The fallback stack must remain fully monospaced and support Chinese through the operating system's glyph fallback.
@@ -150,11 +150,11 @@ Do not use blue, purple, gradients, shadows, large dark surfaces, or decorative 
 - Visible by default.
 - Header and viewport backgrounds are transparent.
 - Preserve the committed lesson-block truth table exactly:
-  - clear existing lessons: transparent fill and solid palette border;
-  - conflicting existing lessons: 24% palette fill;
-  - clear candidates: 26% palette fill and dashed border;
-  - conflicting candidates: 30% red fill and red dashed border;
-  - exact intersections: separate borderless hatch overlay and conflict label.
+    - clear existing lessons: transparent fill and solid palette border;
+    - conflicting existing lessons: 24% palette fill;
+    - clear candidates: 26% palette fill and dashed border;
+    - conflicting candidates: 30% red fill and red dashed border;
+    - exact intersections: separate borderless hatch overlay and conflict label.
 - Do not duplicate conflict logic outside the visual model.
 
 ### Disclosure

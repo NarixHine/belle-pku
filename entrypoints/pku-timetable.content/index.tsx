@@ -18,6 +18,7 @@ import './styles.css'
 const HOST_NAME = 'belle-pku-timetable'
 const HIDDEN_TABLE_ATTRIBUTE = 'data-belle-hidden-course-table'
 const HIDDEN_HINT_ATTRIBUTE = 'data-belle-hidden-course-hint'
+const HIDDEN_PORTAL_ELEMENT_ATTRIBUTE = 'data-belle-hidden-portal-element'
 
 export default defineContentScript({
     matches: ['https://elective.pku.edu.cn/elective2008/*'],
@@ -59,10 +60,19 @@ export default defineContentScript({
                             }
                             table.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                             table.style.setProperty('display', 'none', 'important')
-                            const selectableHint = hidePortalHint('只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程')
+                            const selectableHint = hidePortalHint(
+                                '只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程',
+                            )
                             const electedTable = findElectedCourseTable()
                             const electedCourses = parseElectedCourses(electedTable)
-                            const electedHint = hidePortalHint('"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定')
+                            const electedHint = hidePortalHint(
+                                '"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定',
+                            )
+                            hidePortalRow('选课计划中本学期可选列表')
+                            hidePortalRow('已选列表')
+                            hidePortalRow(
+                                '注：上课时间标注红色，表明所有选课（主辅修）上课时间或考试时间有冲突。',
+                            )
                             if (electedTable && electedCourses.length > 0) {
                                 electedTable.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                                 electedTable.style.setProperty('display', 'none', 'important')
@@ -74,7 +84,9 @@ export default defineContentScript({
                                     existingLessons={existingLessons}
                                     electedCourses={electedCourses}
                                     electedSummary={parseElectedSummary(electedTable)}
-                                    electedPagination={electedTable ? parseCoursePagination(electedTable) : null}
+                                    electedPagination={
+                                        electedTable ? parseCoursePagination(electedTable) : null
+                                    }
                                     selectableHint={selectableHint}
                                     electedHint={electedHint}
                                 />,
@@ -97,12 +109,18 @@ export default defineContentScript({
 
                 let refreshFrame: number | null = null
                 const observer = new MutationObserver(records => {
-                    const courseTableChanged = records.some(record =>
-                        record.target instanceof Element &&
-                        (Boolean(record.target.closest('table.datagrid')) ||
-                            [...record.addedNodes, ...record.removedNodes].some(
-                                node => node instanceof Element && Boolean(node.matches('table.datagrid') || node.querySelector('table.datagrid')),
-                            )),
+                    const courseTableChanged = records.some(
+                        record =>
+                            record.target instanceof Element &&
+                            (Boolean(record.target.closest('table.datagrid')) ||
+                                [...record.addedNodes, ...record.removedNodes].some(
+                                    node =>
+                                        node instanceof Element &&
+                                        Boolean(
+                                            node.matches('table.datagrid') ||
+                                            node.querySelector('table.datagrid'),
+                                        ),
+                                )),
                     )
                     if (!courseTableChanged || refreshFrame !== null) return
                     refreshFrame = ctx.requestAnimationFrame(() => {
@@ -148,6 +166,12 @@ function restoreTables() {
         hint.style.removeProperty('display')
         hint.removeAttribute(HIDDEN_HINT_ATTRIBUTE)
     }
+    for (const element of document.querySelectorAll<HTMLElement>(
+        `[${HIDDEN_PORTAL_ELEMENT_ATTRIBUTE}]`,
+    )) {
+        element.style.removeProperty('display')
+        element.removeAttribute(HIDDEN_PORTAL_ELEMENT_ATTRIBUTE)
+    }
 }
 
 function hidePortalHint(phrase: string): string {
@@ -158,4 +182,19 @@ function hidePortalHint(phrase: string): string {
     hint.setAttribute(HIDDEN_HINT_ATTRIBUTE, 'true')
     hint.style.setProperty('display', 'none', 'important')
     return phrase
+}
+
+function hidePortalRow(phrase: string) {
+    const heading = Array.from(document.querySelectorAll<HTMLElement>('.subTitle')).find(element =>
+        (element.textContent ?? '').replace(/\s+/g, ' ').includes(phrase),
+    )
+    const fallback = heading
+        ? null
+        : Array.from(document.querySelectorAll<HTMLTableRowElement>('tr')).find(element =>
+              (element.textContent ?? '').replace(/\s+/g, ' ').includes(phrase),
+          )
+    const container = heading?.closest('td') ?? fallback
+    if (!container || container.hasAttribute(HIDDEN_PORTAL_ELEMENT_ATTRIBUTE)) return
+    container.setAttribute(HIDDEN_PORTAL_ELEMENT_ATTRIBUTE, 'true')
+    container.style.setProperty('display', 'none', 'important')
 }

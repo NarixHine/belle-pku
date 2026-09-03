@@ -208,27 +208,32 @@ export function parseElectedCourses(
             .map(value => Number.parseInt(value.trim(), 10) || 0)
         const willingnessInput =
             row.cells[columns.willingness]?.querySelector<HTMLInputElement>('input') ?? null
-        return [{
-            ...section,
-            category: cellText(row, columns.category),
-            credits: Number.parseFloat(cellText(row, columns.credits)) || 0,
-            weeklyHours: Number.parseFloat(cellText(row, columns.weeklyHours)) || 0,
-            department: cellText(row, columns.department),
-            grade: cellText(row, columns.grade),
-            pnp: formatPnp(cellText(row, columns.pnp)),
-            capacity,
-            selected,
-            willingness: willingnessInput?.value || cellText(row, columns.willingness),
-            scheduleLines: splitHtmlLines(section.infoCell),
-            detailUrl: row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
-            cancelLink,
-            willingnessInput,
-            willingnessUpdateLink:
-                Array.from(row.cells[columns.willingness]?.querySelectorAll<HTMLAnchorElement>('a') ?? [])
-                    .find(link => link.textContent?.trim() === '修改') ?? null,
-            willingnessMin: willingnessInput?.min || '',
-            willingnessMax: willingnessInput?.max || '',
-        }]
+        return [
+            {
+                ...section,
+                category: cellText(row, columns.category),
+                credits: Number.parseFloat(cellText(row, columns.credits)) || 0,
+                weeklyHours: Number.parseFloat(cellText(row, columns.weeklyHours)) || 0,
+                department: cellText(row, columns.department),
+                grade: cellText(row, columns.grade),
+                pnp: formatPnp(cellText(row, columns.pnp)),
+                capacity,
+                selected,
+                willingness: willingnessInput?.value || cellText(row, columns.willingness),
+                scheduleLines: splitHtmlLines(section.infoCell),
+                detailUrl:
+                    row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
+                cancelLink,
+                willingnessInput,
+                willingnessUpdateLink:
+                    Array.from(
+                        row.cells[columns.willingness]?.querySelectorAll<HTMLAnchorElement>('a') ??
+                            [],
+                    ).find(link => link.textContent?.trim() === '修改') ?? null,
+                willingnessMin: willingnessInput?.min || '',
+                willingnessMax: willingnessInput?.max || '',
+            },
+        ]
     })
 }
 
@@ -236,7 +241,9 @@ export function parseElectedSummary(
     table: HTMLTableElement | null = findElectedCourseTable(),
 ): ElectedSummary | null {
     if (!table) return null
-    const text = Array.from(table.rows).map(row => row.textContent ?? '').join(' ')
+    const text = Array.from(table.rows)
+        .map(row => row.textContent ?? '')
+        .join(' ')
     const totalCredits = text.match(/当前已选总学分为：\s*([\d.]+)/)?.[1] || ''
     const remainingWillingness = text.match(/剩余意愿值：\s*([\d.]+)/)?.[1] || ''
     return totalCredits || remainingWillingness ? { totalCredits, remainingWillingness } : null

@@ -76,8 +76,7 @@ export function CourseList({
                     availability === '全部名额' ||
                     (availability === '尚有名额' && course.selected < course.capacity) ||
                     (availability === '竞争激烈' && ratio >= 1)
-                const matchesConflict =
-                    conflictFilter === 'all' || course.conflictCount === 0
+                const matchesConflict = conflictFilter === 'all' || course.conflictCount === 0
                 return matchesQuery && matchesCategory && matchesAvailability && matchesConflict
             })
             .sort((a, b) => {
@@ -119,15 +118,15 @@ export function CourseList({
                     />
                 </label>
                 <FilterSelect label='课程类别' value={category} onChange={setCategory}>
-                        <option>全部类别</option>
-                        {categories.map(value => (
-                            <option key={value}>{value}</option>
-                        ))}
+                    <option>全部类别</option>
+                    {categories.map(value => (
+                        <option key={value}>{value}</option>
+                    ))}
                 </FilterSelect>
                 <FilterSelect label='名额状态' value={availability} onChange={setAvailability}>
-                        <option>全部名额</option>
-                        <option>尚有名额</option>
-                        <option>竞争激烈</option>
+                    <option>全部名额</option>
+                    <option>尚有名额</option>
+                    <option>竞争激烈</option>
                 </FilterSelect>
                 <FilterSelect
                     label='冲突'
@@ -137,11 +136,15 @@ export function CourseList({
                     <option value='all'>含冲突课程</option>
                     <option value='without-conflicts'>无冲突课程</option>
                 </FilterSelect>
-                <FilterSelect label='排序' value={sort} onChange={value => setSort(value as SortKey)}>
-                        <option value='default'>默认排序</option>
-                        <option value='availability'>余量优先</option>
-                        <option value='demand'>竞争度优先</option>
-                        <option value='credits'>学分从高到低</option>
+                <FilterSelect
+                    label='排序'
+                    value={sort}
+                    onChange={value => setSort(value as SortKey)}
+                >
+                    <option value='default'>默认排序</option>
+                    <option value='availability'>余量优先</option>
+                    <option value='demand'>竞争度优先</option>
+                    <option value='credits'>学分从高到低</option>
                 </FilterSelect>
             </section>
 
@@ -207,14 +210,26 @@ function ElectedCourseList({
                 </div>
                 <div class='elected-section__summary'>
                     <span>{courses.length} 门课程</span>
-                    {summary?.totalCredits ? <span>已选总学分 <strong>{summary.totalCredits}</strong></span> : null}
-                    {summary?.remainingWillingness ? <span>剩余意愿值 <strong>{summary.remainingWillingness}</strong></span> : null}
+                    {summary?.totalCredits ? (
+                        <span>
+                            已选总学分 <strong>{summary.totalCredits}</strong>
+                        </span>
+                    ) : null}
+                    {summary?.remainingWillingness ? (
+                        <span>
+                            剩余意愿值 <strong>{summary.remainingWillingness}</strong>
+                        </span>
+                    ) : null}
                 </div>
             </header>
             <div class='course-list elected-list' aria-label='已选课程列表'>
-                {courses.map(course => <ElectedCourseCard course={course} key={course.id} />)}
+                {courses.map(course => (
+                    <ElectedCourseCard course={course} key={course.id} />
+                ))}
             </div>
-            {pagination && pagination.totalPages > 1 ? <Pagination pagination={pagination} /> : null}
+            {pagination && pagination.totalPages > 1 ? (
+                <Pagination pagination={pagination} />
+            ) : null}
         </section>
     )
 }
@@ -222,7 +237,10 @@ function ElectedCourseList({
 function ElectedCourseCard({ course }: { course: ElectedCourse }) {
     const [willingness, setWillingness] = useState(course.willingness)
     const badges = [
-        ...course.teacher.split(',').map(teacher => teacher.trim()).filter(Boolean),
+        ...course.teacher
+            .split(',')
+            .map(teacher => teacher.trim())
+            .filter(Boolean),
         course.sectionNumber ? `${course.sectionNumber} 班` : '',
         course.grade ? `${course.grade} 级` : '',
         course.pnp,
@@ -240,32 +258,60 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
             <div class='course-card__top'>
                 <div class='course-identity'>
                     <div class='course-kicker'>
-                        <span>{course.courseCode}</span><span aria-hidden='true'>/</span>
-                        <span>{course.category}</span><span aria-hidden='true'>/</span>
+                        <span>{course.courseCode}</span>
+                        <span aria-hidden='true'>/</span>
+                        <span>{course.category}</span>
+                        <span aria-hidden='true'>/</span>
                         <span>{course.department}</span>
                     </div>
                     <h2>
-                        {course.detailUrl ? <a href={course.detailUrl} target='_blank' rel='noreferrer'>{course.courseName}</a> : course.courseName}
+                        {course.detailUrl ? (
+                            <a href={course.detailUrl} target='_blank' rel='noreferrer'>
+                                {course.courseName}
+                            </a>
+                        ) : (
+                            course.courseName
+                        )}
                     </h2>
                     <div class='badges' aria-label='课程附加信息'>
-                        {badges.map(badge => <span class='badge' key={badge}>{badge}</span>)}
+                        {badges.map(badge => (
+                            <span class='badge' key={badge}>
+                                {badge}
+                            </span>
+                        ))}
                     </div>
                 </div>
                 <div class='primary-metrics'>
                     <div class='metric metric--compact'>
                         <span class='metric__label'>学分 / 周学时</span>
-                        <strong><span>{formatNumber(course.credits)}</span><small><span>/</span>{formatNumber(course.weeklyHours)}</small></strong>
+                        <strong>
+                            <span>{formatNumber(course.credits)}</span>
+                            <small>
+                                <span>/</span>
+                                {formatNumber(course.weeklyHours)}
+                            </small>
+                        </strong>
                     </div>
                     <div class='metric metric--capacity'>
                         <span class='metric__label'>已选 / 限数</span>
-                        <strong><span>{course.selected}</span><small><span>/</span>{course.capacity}</small></strong>
+                        <strong>
+                            <span>{course.selected}</span>
+                            <small>
+                                <span>/</span>
+                                {course.capacity}
+                            </small>
+                        </strong>
                     </div>
                 </div>
             </div>
             <div class='course-card__schedule'>
                 <details class='raw-schedule'>
                     <summary>查看详细时间与考试信息</summary>
-                    <div>{course.scheduleLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
+                    <div>
+                        {course.scheduleLines.map((line, index) => (
+                            <p key={`${line}-${index}`}>{line}</p>
+                        ))}
+                    </div>
                 </details>
             </div>
             <div class='course-card__actions'>
@@ -273,13 +319,34 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
                     {course.willingnessInput ? (
                         <div class='willingness-control'>
                             <label class='willingness'>
-                            <span>意愿值</span>
-                            <input type='number' min={course.willingnessMin || undefined} max={course.willingnessMax || undefined} value={willingness} onInput={event => updateWillingness(event.currentTarget.value)} aria-label={`${course.courseName}意愿值`} />
+                                <span>意愿值</span>
+                                <input
+                                    type='number'
+                                    min={course.willingnessMin || undefined}
+                                    max={course.willingnessMax || undefined}
+                                    value={willingness}
+                                    onInput={event => updateWillingness(event.currentTarget.value)}
+                                    aria-label={`${course.courseName}意愿值`}
+                                />
                             </label>
-                            {course.willingnessUpdateLink ? <button type='button' class='cancel-button' onClick={() => course.willingnessUpdateLink?.click()}>修改</button> : null}
+                            {course.willingnessUpdateLink ? (
+                                <button
+                                    type='button'
+                                    class='cancel-button'
+                                    onClick={() => course.willingnessUpdateLink?.click()}
+                                >
+                                    修改
+                                </button>
+                            ) : null}
                         </div>
                     ) : null}
-                    <button type='button' class='cancel-button' onClick={() => course.cancelLink.click()}>取消</button>
+                    <button
+                        type='button'
+                        class='cancel-button'
+                        onClick={() => course.cancelLink.click()}
+                    >
+                        取消
+                    </button>
                 </div>
             </div>
         </article>
@@ -298,7 +365,10 @@ function CourseCard({
     const progress = Math.min(100, demand * 100)
     const overCapacity = demand >= 1
     const badges = [
-        ...course.teacher.split(',').map(teacher => teacher.trim()).filter(Boolean),
+        ...course.teacher
+            .split(',')
+            .map(teacher => teacher.trim())
+            .filter(Boolean),
         course.sectionNumber ? `${course.sectionNumber} 班` : '',
         course.grade ? `${course.grade} 级` : '',
         course.pnp,
