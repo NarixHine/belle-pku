@@ -24,17 +24,19 @@ export interface CourseSection {
 
 export interface SelectableCourse extends CourseSection {
     category: string
-    credits: number
-    weeklyHours: number
+    credits: number | null
+    weeklyHours: number | null
     department: string
     grade: string
     pnp: string
-    capacity: number
-    selected: number
+    capacity: number | null
+    selected: number | null
     willingness: string
+    extraFields: Array<{ label: string; value: string }>
     scheduleLines: string[]
     detailUrl: string
     actionLink: HTMLAnchorElement
+    actionLabel: string
     willingnessInput: HTMLInputElement | null
     willingnessMin: string
     willingnessMax: string

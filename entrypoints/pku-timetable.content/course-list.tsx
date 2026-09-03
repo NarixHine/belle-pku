@@ -19,6 +19,7 @@ interface CourseListProps {
     electedPagination: CoursePagination | null
     selectableHint: string
     electedHint: string
+    heading?: string
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
@@ -102,6 +103,7 @@ export function CourseList({
     electedPagination,
     selectableHint,
     electedHint,
+    heading = '本学期可选课程',
 }: CourseListProps) {
     const [viewState, setViewState] = useState<CourseViewState>(() => ({
         ...defaultCourseViewState,
@@ -124,23 +126,31 @@ export function CourseList({
                         value => value.toLocaleLowerCase().includes(normalizedQuery),
                     )
                 const matchesCategory = category === '全部类别' || course.category === category
-                const ratio = course.capacity ? course.selected / course.capacity : 0
+                const ratio = course.capacity ? (course.selected ?? 0) / course.capacity : 0
                 const matchesAvailability =
                     availability === '全部名额' ||
-                    (availability === '尚有名额' && course.selected < course.capacity) ||
-                    (availability === '竞争激烈' && ratio >= 1)
+                    (availability === '尚有名额' &&
+                        course.capacity !== null &&
+                        course.selected !== null &&
+                        course.selected < course.capacity) ||
+                    (availability === '竞争激烈' && course.capacity !== null && ratio >= 1)
                 const matchesConflict = conflictFilter === 'all' || course.conflictCount === 0
                 return matchesQuery && matchesCategory && matchesAvailability && matchesConflict
             })
             .sort((a, b) => {
                 if (sort === 'availability')
-                    return b.capacity - b.selected - (a.capacity - a.selected)
+                    return (
+                        (b.capacity ?? 0) -
+                        (b.selected ?? 0) -
+                        ((a.capacity ?? 0) - (a.selected ?? 0))
+                    )
                 if (sort === 'demand') {
                     return (
-                        b.selected / Math.max(1, b.capacity) - a.selected / Math.max(1, a.capacity)
+                        (b.selected ?? 0) / Math.max(1, b.capacity ?? 0) -
+                        (a.selected ?? 0) / Math.max(1, a.capacity ?? 0)
                     )
                 }
-                if (sort === 'credits') return b.credits - a.credits
+                if (sort === 'credits') return (b.credits ?? 0) - (a.credits ?? 0)
                 return 0
             })
     })()
@@ -149,7 +159,7 @@ export function CourseList({
         <main class='course-browser'>
             <header class='course-browser__header'>
                 <div class='heading-with-hint'>
-                    <h1>本学期可选课程</h1>
+                    <h1>{heading}</h1>
                     {selectableHint ? <p class='section-hint'>{selectableHint}</p> : null}
                 </div>
                 <span class='result-count' aria-live='polite'>
@@ -417,7 +427,7 @@ function CourseCard({
     existingLessons: LessonSlot[]
 }) {
     const [willingness, setWillingness] = useState(course.willingness)
-    const demand = course.capacity ? course.selected / course.capacity : 0
+    const demand = course.capacity ? (course.selected ?? 0) / course.capacity : 0
     const progress = Math.min(100, demand * 100)
     const overCapacity = demand >= 1
     const badges = [
@@ -428,6 +438,7 @@ function CourseCard({
         course.sectionNumber ? `${course.sectionNumber} 班` : '',
         course.grade ? `${course.grade} 级` : '',
         course.pnp,
+        ...course.extraFields.map(field => `${field.label} ${field.value}`),
     ].filter(Boolean)
 
     const updateWillingness = (value: string) => {
@@ -468,46 +479,62 @@ function CourseCard({
                     </div>
                 </div>
 
-                <div class='primary-metrics'>
-                    <div class='metric metric--compact'>
-                        <span class='metric__label'>学分 / 周学时</span>
-                        <strong>
-                            <span>{formatNumber(course.credits)}</span>
-                            <small>
-                                <span>/</span>
-                                {formatNumber(course.weeklyHours)}
-                            </small>
-                        </strong>
+                {course.credits !== null ||
+                course.weeklyHours !== null ||
+                (course.capacity !== null && course.selected !== null) ? (
+                    <div
+                        class={`primary-metrics${
+                            (course.credits !== null || course.weeklyHours !== null) &&
+                            course.capacity !== null &&
+                            course.selected !== null
+                                ? ''
+                                : ' primary-metrics--single'
+                        }`}
+                    >
+                        {course.credits !== null || course.weeklyHours !== null ? (
+                            <div class='metric metric--compact'>
+                                <span class='metric__label'>学分 / 周学时</span>
+                                <strong>
+                                    <span>{formatOptionalNumber(course.credits)}</span>
+                                    <small>
+                                        <span>/</span>
+                                        {formatOptionalNumber(course.weeklyHours)}
+                                    </small>
+                                </strong>
+                            </div>
+                        ) : null}
+                        {course.capacity !== null && course.selected !== null ? (
+                            <div class='metric metric--capacity'>
+                                <span class='metric__label'>已选 / 限数</span>
+                                <strong class={overCapacity ? 'is-danger' : ''}>
+                                    <span>{course.selected}</span>
+                                    <small>
+                                        <span>/</span>
+                                        {course.capacity}
+                                    </small>
+                                </strong>
+                                <div
+                                    class='progress'
+                                    role='progressbar'
+                                    aria-label='已选人数占限数比例'
+                                    aria-valuemin={0}
+                                    aria-valuemax={course.capacity}
+                                    aria-valuenow={course.selected}
+                                >
+                                    <span
+                                        class={overCapacity ? 'is-over' : ''}
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                                <span class='metric__hint'>
+                                    {overCapacity
+                                        ? `超出容量 ${course.selected - course.capacity} 人`
+                                        : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
+                                </span>
+                            </div>
+                        ) : null}
                     </div>
-                    <div class='metric metric--capacity'>
-                        <span class='metric__label'>已选 / 限数</span>
-                        <strong class={overCapacity ? 'is-danger' : ''}>
-                            <span>{course.selected}</span>
-                            <small>
-                                <span>/</span>
-                                {course.capacity}
-                            </small>
-                        </strong>
-                        <div
-                            class='progress'
-                            role='progressbar'
-                            aria-label='已选人数占限数比例'
-                            aria-valuemin={0}
-                            aria-valuemax={course.capacity}
-                            aria-valuenow={course.selected}
-                        >
-                            <span
-                                class={overCapacity ? 'is-over' : ''}
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-                        <span class='metric__hint'>
-                            {overCapacity
-                                ? `超出容量 ${course.selected - course.capacity} 人`
-                                : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
-                        </span>
-                    </div>
-                </div>
+                ) : null}
             </div>
 
             <div class='course-card__schedule'>
@@ -541,7 +568,7 @@ function CourseCard({
                         class='select-button'
                         onClick={() => course.actionLink.click()}
                     >
-                        预选
+                        {course.actionLabel}
                     </button>
                 </div>
             </div>
@@ -592,4 +619,8 @@ function Pagination({ pagination }: { pagination: CoursePagination }) {
 
 function formatNumber(value: number): string {
     return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function formatOptionalNumber(value: number | null): string {
+    return value === null ? '-' : formatNumber(value)
 }

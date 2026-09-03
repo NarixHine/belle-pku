@@ -18,6 +18,17 @@ interface CourseColumns {
     info: number
 }
 
+interface ActionableCourseColumns {
+    category: number
+    credits: number
+    weeklyHours: number
+    department: number
+    grade: number
+    pnp: number
+    capacity: number
+    willingness: number
+}
+
 interface SelectableCourseColumns extends CourseColumns {
     category: number
     credits: number
@@ -38,6 +49,25 @@ const columnLabels: Record<keyof CourseColumns, string> = {
     info: '上课/考试信息',
 }
 
+const courseColumnAliases: Record<keyof CourseColumns, string[]> = {
+    courseCode: ['课程号'],
+    courseName: ['课程名'],
+    teacher: ['教师'],
+    sectionNumber: ['班号'],
+    info: ['上课/考试信息', '上课时间及教室'],
+}
+
+const actionableColumnAliases: Record<keyof ActionableCourseColumns, string[]> = {
+    category: ['课程类别'],
+    credits: ['学分'],
+    weeklyHours: ['周学时'],
+    department: ['开课单位'],
+    grade: ['年级'],
+    pnp: ['自选P/NP'],
+    capacity: ['限数/已选'],
+    willingness: ['意愿值'],
+}
+
 const selectableColumnLabels: Record<keyof SelectableCourseColumns, string> = {
     ...columnLabels,
     category: '课程类别',
@@ -53,6 +83,14 @@ const selectableColumnLabels: Record<keyof SelectableCourseColumns, string> = {
 
 export function findSelectableCourseTable(): HTMLTableElement | null {
     return findCourseTableByAction('预选', 'electCourse.do')
+}
+
+export function findPlannableCourseTable(): HTMLTableElement | null {
+    return findCourseTableByAction('加入可选列表', 'addToPlan.do')
+}
+
+export function findActionableCourseTable(): HTMLTableElement | null {
+    return findSelectableCourseTable() ?? findPlannableCourseTable()
 }
 
 export function findElectedCourseTable(): HTMLTableElement | null {
@@ -74,8 +112,9 @@ function findCourseTableByAction(
                 (cell.textContent ?? '').replace(/\s+/g, '').trim(),
             )
             return (
-                headers.some(header => header.includes(columnLabels.info)) &&
-                headers.some(header => header.includes(actionHeader))
+                headers.some(header =>
+                    courseColumnAliases.info.some(label => header.includes(label)),
+                ) && headers.some(header => header.includes(actionHeader))
             )
         }) ??
         null
@@ -145,20 +184,44 @@ export function parseSelectableCourses(
     existingLessons: LessonSlot[],
     table: HTMLTableElement | null = findSelectableCourseTable(),
 ): SelectableCourse[] {
+    return parseActionableCourses(existingLessons, table, 'electCourse.do', '预选')
+}
+
+export function parsePlannableCourses(
+    existingLessons: LessonSlot[],
+    table: HTMLTableElement | null = findPlannableCourseTable(),
+): SelectableCourse[] {
+    return parseActionableCourses(existingLessons, table, 'addToPlan.do', '加入选课计划')
+}
+
+export function parseActionableCourses(
+    existingLessons: LessonSlot[],
+    table: HTMLTableElement | null = findActionableCourseTable(),
+    actionPath?: string,
+    actionLabel?: string,
+): SelectableCourse[] {
     if (!table) return []
-    const columns = getColumnsFromLabels(table, selectableColumnLabels)
-    if (!columns) return []
+    const columns = getOptionalColumns(table, actionableColumnAliases)
+    const resolvedActionPath =
+        actionPath ??
+        (table.querySelector('a[href*="addToPlan.do"]') ? 'addToPlan.do' : 'electCourse.do')
+    const resolvedActionLabel =
+        actionLabel ?? (resolvedActionPath === 'addToPlan.do' ? '加入选课计划' : '预选')
+    const headers = getHeaderTexts(table)
+    const knownIndexes = new Set([
+        ...Object.values(getOptionalColumns(table, courseColumnAliases)),
+        ...Object.values(columns),
+    ])
 
     return Array.from(
         table.querySelectorAll<HTMLTableRowElement>('tr.datagrid-even, tr.datagrid-odd'),
     ).flatMap(row => {
         const section = parseCourseRow(row)
-        const actionLink = row.querySelector<HTMLAnchorElement>('a[href*="electCourse.do"]')
+        const actionLink = row.querySelector<HTMLAnchorElement>(`a[href*="${resolvedActionPath}"]`)
         if (!section || !actionLink) return []
 
-        const [capacity = 0, selected = 0] = cellText(row, columns.capacity)
-            .split('/')
-            .map(value => Number.parseInt(value.trim(), 10) || 0)
+        const [capacity, selected] = parseCapacity(cellText(row, columns.capacity))
+        const actionCellIndex = actionLink.closest('td')?.cellIndex ?? -1
         const willingnessCell = row.cells[columns.willingness]
         const willingnessInput = willingnessCell?.querySelector<HTMLInputElement>('input') ?? null
         const scheduleLines = splitHtmlLines(section.infoCell).filter(
@@ -169,18 +232,25 @@ export function parseSelectableCourses(
             {
                 ...section,
                 category: cellText(row, columns.category),
-                credits: Number.parseFloat(cellText(row, columns.credits)) || 0,
-                weeklyHours: Number.parseFloat(cellText(row, columns.weeklyHours)) || 0,
+                credits: parseOptionalNumber(cellText(row, columns.credits)),
+                weeklyHours: parseOptionalNumber(cellText(row, columns.weeklyHours)),
                 department: cellText(row, columns.department),
                 grade: cellText(row, columns.grade),
                 pnp: formatPnp(cellText(row, columns.pnp)),
                 capacity,
                 selected,
                 willingness: willingnessInput?.value || cellText(row, columns.willingness),
+                extraFields: headers.flatMap((label, index) => {
+                    const value = cellText(row, index)
+                    return label && value && !knownIndexes.has(index) && index !== actionCellIndex
+                        ? [{ label, value }]
+                        : []
+                }),
                 scheduleLines,
                 detailUrl:
                     row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
                 actionLink,
+                actionLabel: resolvedActionLabel,
                 willingnessInput,
                 willingnessMin: willingnessInput?.min || '',
                 willingnessMax: willingnessInput?.max || '',
@@ -272,7 +342,32 @@ function formatPnp(value: string): string {
 }
 
 function getColumns(table: HTMLTableElement): CourseColumns | null {
-    return getColumnsFromLabels(table, columnLabels)
+    const columns = getOptionalColumns(table, courseColumnAliases)
+    return columns.courseCode >= 0 && columns.courseName >= 0 && columns.info >= 0 ? columns : null
+}
+
+function getHeaderTexts(table: HTMLTableElement): string[] {
+    const header = Array.from(table.rows).find(row => row.querySelector('th'))
+    return header
+        ? Array.from(header.cells).map(cell => {
+              const content = cell.cloneNode(true) as HTMLTableCellElement
+              content.querySelectorAll('input, select, script').forEach(element => element.remove())
+              return (content.textContent ?? '').replace(/\s+/g, '').trim()
+          })
+        : []
+}
+
+function getOptionalColumns<T extends Record<keyof T, string[]>>(
+    table: HTMLTableElement,
+    aliases: T,
+): { [Key in keyof T]: number } {
+    const headers = getHeaderTexts(table)
+    return Object.fromEntries(
+        Object.entries(aliases).map(([key, labels]) => [
+            key,
+            headers.findIndex(header => (labels as string[]).some(label => header.includes(label))),
+        ]),
+    ) as { [Key in keyof T]: number }
 }
 
 function getColumnsFromLabels<T extends Record<keyof T, string>>(
@@ -305,14 +400,31 @@ export function getCourseTableDiagnostics(): object {
         rows: table.querySelectorAll('tr.datagrid-even, tr.datagrid-odd').length,
         hasElectAction: Boolean(table.querySelector('a[href*="electCourse.do"]')),
         hasCancelAction: Boolean(table.querySelector('a[href*="cancelCourse.do"]')),
+        hasPlanAction: Boolean(table.querySelector('a[href*="addToPlan.do"]')),
     })
 
     return {
         datagridCount: tables.length,
         selectableFound: Boolean(findSelectableCourseTable()),
         electedFound: Boolean(findElectedCourseTable()),
+        plannableFound: Boolean(findPlannableCourseTable()),
         tables: tables.map(describe),
     }
+}
+
+function parseOptionalNumber(value: string): number | null {
+    if (!value) return null
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseCapacity(value: string): [number | null, number | null] {
+    if (!value.includes('/')) return [null, null]
+    const [capacity, selected] = value.split('/').map(part => Number.parseInt(part.trim(), 10))
+    return [
+        capacity !== undefined && Number.isFinite(capacity) ? capacity : null,
+        selected !== undefined && Number.isFinite(selected) ? selected : null,
+    ]
 }
 
 function cellText(row: HTMLTableRowElement, index: number): string {

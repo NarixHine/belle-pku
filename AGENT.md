@@ -4,7 +4,7 @@
 
 - Project: Belle PKU Timetable.
 - Type: browser extension for PKU elective course pages.
-- Framework: WXT `0.21.x` with Vite.
+- Framework: WXT `0.21.x` with Bun & Vite.
 - UI: Preact `10.x` and JSX.
 - Language: TypeScript `5.x`, with ES modules enabled.
 - Supported browser builds: Chromium Manifest V3 and Firefox Manifest V2.
@@ -48,17 +48,6 @@ bun run zip:firefox
 - Preserve normal page interaction. The overlay must not block links, inputs, pagination, or course-selection controls.
 - Keep user-visible text consistent with the existing Simplified Chinese labels used by PKU pages.
 - Add comments only where they explain non-obvious browser or DOM behavior.
-
-## Architecture
-
-- `entrypoints/pku-timetable.content/index.tsx`: content-script lifecycle, Shadow DOM mounting, badges, positioning, and route handling.
-- `entrypoints/pku-timetable.content/hover-controller.ts`: badge hover lifecycle, delayed preview opening, close handling, and layout listeners.
-- `entrypoints/pku-timetable.content/parse-course-table.ts`: selectable-course table discovery and row parsing.
-- `entrypoints/pku-timetable.content/parse-timetable.ts`: elected/current timetable parsing.
-- `entrypoints/pku-timetable.content/visual-model.ts`: conflict calculation and preview model construction.
-- `entrypoints/pku-timetable.content/TimetablePreview.tsx` and `PreviewBlock.tsx`: Preact preview rendering.
-- `entrypoints/pku-timetable.content/styles.css`: isolated preview styles.
-- `wxt.config.ts`: extension manifest and browser-specific configuration.
 
 ## Verification
 

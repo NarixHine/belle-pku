@@ -2,17 +2,18 @@ import { render } from 'preact'
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root'
 import { CourseList } from './course-list'
 import { debugError, debugLog } from './debug'
+import { readElectedLessonsCache, writeElectedLessonsCache } from './elected-lessons-cache'
 import {
-    findSelectableCourseTable,
+    findActionableCourseTable,
     findElectedCourseTable,
     getCourseTableDiagnostics,
     parseCoursePagination,
     parseElectedCourses,
     parseElectedSummary,
-    parseSelectableCourses,
+    parseActionableCourses,
 } from './parse-course-table'
 import { parseElectedLessons } from './parse-timetable'
-import { isSupportedUrl } from './url'
+import { isElectiveWorkUrl, isSupportedUrl } from './url'
 import './styles.css'
 
 const HOST_NAME = 'belle-pku-timetable'
@@ -37,21 +38,26 @@ export default defineContentScript({
         }
 
         const startRoute = async () => {
-            if (starting || removeRoute || !isSupportedUrl() || !findSelectableCourseTable()) return
+            refreshElectedLessonsCache()
+            if (starting || removeRoute || !isSupportedUrl() || !findActionableCourseTable()) return
             starting = true
             try {
                 const ui = await createShadowRootUi(ctx, {
                     name: HOST_NAME,
                     position: 'inline',
-                    anchor: () => findSelectableCourseTable(),
+                    anchor: () => findActionableCourseTable(),
                     append: 'before',
                     isolateEvents: ['keyup', 'keydown', 'keypress', 'input', 'change'],
                     onMount(container) {
                         const draw = () => {
-                            const table = findSelectableCourseTable()
+                            refreshElectedLessonsCache()
+                            const table = findActionableCourseTable()
                             if (!table) return
-                            const existingLessons = parseElectedLessons()
-                            const courses = parseSelectableCourses(existingLessons, table)
+                            const electedLessonTable = findElectedCourseTable()
+                            const existingLessons = electedLessonTable
+                                ? parseElectedLessons(electedLessonTable)
+                                : readElectedLessonsCache()
+                            const courses = parseActionableCourses(existingLessons, table)
                             if (courses.length === 0) {
                                 table.style.removeProperty('display')
                                 table.removeAttribute(HIDDEN_TABLE_ATTRIBUTE)
@@ -60,19 +66,26 @@ export default defineContentScript({
                             }
                             table.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                             table.style.setProperty('display', 'none', 'important')
-                            const selectableHint = hidePortalHint(
-                                '只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程',
-                            )
-                            const electedTable = findElectedCourseTable()
+                            const isPlanQuery = courses[0]?.actionLabel === '加入选课计划'
+                            const selectableHint = isPlanQuery
+                                ? ''
+                                : hidePortalHint(
+                                      '只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程',
+                                  )
+                            const electedTable = isPlanQuery ? null : findElectedCourseTable()
                             const electedCourses = parseElectedCourses(electedTable)
-                            const electedHint = hidePortalHint(
-                                '"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定',
-                            )
-                            hidePortalRow('选课计划中本学期可选列表')
-                            hidePortalRow('已选列表')
-                            hidePortalRow(
-                                '注：上课时间标注红色，表明所有选课（主辅修）上课时间或考试时间有冲突。',
-                            )
+                            const electedHint = isPlanQuery
+                                ? ''
+                                : hidePortalHint(
+                                      '"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定',
+                                  )
+                            if (!isPlanQuery) {
+                                hidePortalRow('选课计划中本学期可选列表')
+                                hidePortalRow('已选列表')
+                                hidePortalRow(
+                                    '注：上课时间标注红色，表明所有选课（主辅修）上课时间或考试时间有冲突。',
+                                )
+                            }
                             if (electedTable && electedCourses.length > 0) {
                                 electedTable.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                                 electedTable.style.setProperty('display', 'none', 'important')
@@ -89,6 +102,7 @@ export default defineContentScript({
                                     }
                                     selectableHint={selectableHint}
                                     electedHint={electedHint}
+                                    heading={isPlanQuery ? '加入选课计划' : '本学期可选课程'}
                                 />,
                                 container,
                             )
@@ -125,7 +139,7 @@ export default defineContentScript({
                     if (!courseTableChanged || refreshFrame !== null) return
                     refreshFrame = ctx.requestAnimationFrame(() => {
                         refreshFrame = null
-                        if (!ui.shadowHost.isConnected && findSelectableCourseTable()) ui.mount()
+                        if (!ui.shadowHost.isConnected && findActionableCourseTable()) ui.mount()
                         ui.mounted?.draw()
                     })
                 })
@@ -156,6 +170,15 @@ export default defineContentScript({
         ctx.onInvalidated(stopRoute)
     },
 })
+
+function refreshElectedLessonsCache() {
+    if (!isElectiveWorkUrl()) return
+    const table = findElectedCourseTable()
+    if (!table) return
+    const lessons = parseElectedLessons(table)
+    writeElectedLessonsCache(lessons)
+    debugLog('Existing lessons cache refreshed', { count: lessons.length })
+}
 
 function restoreTables() {
     for (const table of document.querySelectorAll<HTMLElement>(`[${HIDDEN_TABLE_ATTRIBUTE}]`)) {

@@ -320,6 +320,10 @@ select:focus {
     gap: 12px;
 }
 
+.primary-metrics--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .metric__label {
     display: block;
     margin-bottom: 3px;
