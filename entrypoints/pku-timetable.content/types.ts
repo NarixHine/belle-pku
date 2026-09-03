@@ -41,6 +41,30 @@ export interface SelectableCourse extends CourseSection {
     conflictCount: number
 }
 
+export interface ElectedCourse extends CourseSection {
+    category: string
+    credits: number
+    weeklyHours: number
+    department: string
+    grade: string
+    pnp: string
+    capacity: number
+    selected: number
+    willingness: string
+    scheduleLines: string[]
+    detailUrl: string
+    cancelLink: HTMLAnchorElement
+    willingnessInput: HTMLInputElement | null
+    willingnessUpdateLink: HTMLAnchorElement | null
+    willingnessMin: string
+    willingnessMax: string
+}
+
+export interface ElectedSummary {
+    totalCredits: string
+    remainingWillingness: string
+}
+
 export interface CoursePagination {
     currentPage: number
     totalPages: number

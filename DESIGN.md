@@ -125,7 +125,8 @@ Do not use blue, purple, gradients, shadows, large dark surfaces, or decorative 
 - Mobile gutters: 16px.
 - Course surfaces align to content height rather than stretching to equal heights.
 - Course header order: identity, badges, key metrics.
-- Course body order: timetable, raw-details disclosure, willingness and preselection action.
+- Preselection course body order: timetable, raw-details disclosure, willingness and preselection action.
+- 已选 course body omits the timetable preview; it keeps raw-details disclosure, willingness, and cancellation action.
 - Display `已选 / 限数`, emphasizing `已选` first.
 
 ## Components

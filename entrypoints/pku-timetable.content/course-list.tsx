@@ -1,20 +1,64 @@
 import { useState } from 'preact/hooks'
+import type { ComponentChildren } from 'preact'
 import { TimetablePreview } from './timetable-preview'
-import type { CoursePagination, LessonSlot, SelectableCourse } from './types'
+import type {
+    CoursePagination,
+    ElectedCourse,
+    ElectedSummary,
+    LessonSlot,
+    SelectableCourse,
+} from './types'
 import { createPreviewModel } from './visual-model'
 
 interface CourseListProps {
     courses: SelectableCourse[]
     pagination: CoursePagination | null
     existingLessons: LessonSlot[]
+    electedCourses: ElectedCourse[]
+    electedSummary: ElectedSummary | null
+    electedPagination: CoursePagination | null
+    selectableHint: string
+    electedHint: string
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
+type ConflictFilter = 'all' | 'without-conflicts'
 
-export function CourseList({ courses, pagination, existingLessons }: CourseListProps) {
+function FilterSelect({
+    label,
+    value,
+    onChange,
+    children,
+}: {
+    label: string
+    value: string
+    onChange: (value: string) => void
+    children: ComponentChildren
+}) {
+    return (
+        <label class='filter-select'>
+            <span class='sr-only'>{label}</span>
+            <select value={value} onChange={event => onChange(event.currentTarget.value)}>
+                {children}
+            </select>
+        </label>
+    )
+}
+
+export function CourseList({
+    courses,
+    pagination,
+    existingLessons,
+    electedCourses,
+    electedSummary,
+    electedPagination,
+    selectableHint,
+    electedHint,
+}: CourseListProps) {
     const [query, setQuery] = useState('')
     const [category, setCategory] = useState('全部类别')
     const [availability, setAvailability] = useState('全部名额')
+    const [conflictFilter, setConflictFilter] = useState<ConflictFilter>('all')
     const [sort, setSort] = useState<SortKey>('default')
     const categories = Array.from(new Set(courses.map(course => course.category).filter(Boolean)))
     const filteredCourses = (() => {
@@ -32,7 +76,9 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
                     availability === '全部名额' ||
                     (availability === '尚有名额' && course.selected < course.capacity) ||
                     (availability === '竞争激烈' && ratio >= 1)
-                return matchesQuery && matchesCategory && matchesAvailability
+                const matchesConflict =
+                    conflictFilter === 'all' || course.conflictCount === 0
+                return matchesQuery && matchesCategory && matchesAvailability && matchesConflict
             })
             .sort((a, b) => {
                 if (sort === 'availability')
@@ -50,7 +96,10 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
     return (
         <main class='course-browser'>
             <header class='course-browser__header'>
-                <h1>本学期可选课程</h1>
+                <div class='heading-with-hint'>
+                    <h1>本学期可选课程</h1>
+                    {selectableHint ? <p class='section-hint'>{selectableHint}</p> : null}
+                </div>
                 <span class='result-count' aria-live='polite'>
                     显示 {filteredCourses.length} 门
                 </span>
@@ -69,41 +118,31 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
                         placeholder='搜索课程、教师或课程号'
                     />
                 </label>
-                <label>
-                    <span class='sr-only'>课程类别</span>
-                    <select
-                        value={category}
-                        onChange={event => setCategory(event.currentTarget.value)}
-                    >
+                <FilterSelect label='课程类别' value={category} onChange={setCategory}>
                         <option>全部类别</option>
                         {categories.map(value => (
                             <option key={value}>{value}</option>
                         ))}
-                    </select>
-                </label>
-                <label>
-                    <span class='sr-only'>名额状态</span>
-                    <select
-                        value={availability}
-                        onChange={event => setAvailability(event.currentTarget.value)}
-                    >
+                </FilterSelect>
+                <FilterSelect label='名额状态' value={availability} onChange={setAvailability}>
                         <option>全部名额</option>
                         <option>尚有名额</option>
                         <option>竞争激烈</option>
-                    </select>
-                </label>
-                <label>
-                    <span class='sr-only'>排序</span>
-                    <select
-                        value={sort}
-                        onChange={event => setSort(event.currentTarget.value as SortKey)}
-                    >
+                </FilterSelect>
+                <FilterSelect
+                    label='冲突'
+                    value={conflictFilter}
+                    onChange={value => setConflictFilter(value as ConflictFilter)}
+                >
+                    <option value='all'>含冲突课程</option>
+                    <option value='without-conflicts'>无冲突课程</option>
+                </FilterSelect>
+                <FilterSelect label='排序' value={sort} onChange={value => setSort(value as SortKey)}>
                         <option value='default'>默认排序</option>
                         <option value='availability'>余量优先</option>
                         <option value='demand'>竞争度优先</option>
                         <option value='credits'>学分从高到低</option>
-                    </select>
-                </label>
+                </FilterSelect>
             </section>
 
             {filteredCourses.length ? (
@@ -126,6 +165,7 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
                             setQuery('')
                             setCategory('全部类别')
                             setAvailability('全部名额')
+                            setConflictFilter('all')
                         }}
                     >
                         清除筛选
@@ -135,7 +175,114 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
             {pagination && pagination.totalPages > 1 ? (
                 <Pagination pagination={pagination} />
             ) : null}
+            {electedCourses.length > 0 ? (
+                <ElectedCourseList
+                    courses={electedCourses}
+                    summary={electedSummary}
+                    pagination={electedPagination}
+                    hint={electedHint}
+                />
+            ) : null}
         </main>
+    )
+}
+
+function ElectedCourseList({
+    courses,
+    summary,
+    pagination,
+    hint,
+}: {
+    courses: ElectedCourse[]
+    summary: ElectedSummary | null
+    pagination: CoursePagination | null
+    hint: string
+}) {
+    return (
+        <section class='elected-section' aria-labelledby='elected-heading'>
+            <header class='elected-section__header'>
+                <div class='heading-with-hint'>
+                    <h2 id='elected-heading'>已选列表</h2>
+                    {hint ? <p class='section-hint'>{hint}</p> : null}
+                </div>
+                <div class='elected-section__summary'>
+                    <span>{courses.length} 门课程</span>
+                    {summary?.totalCredits ? <span>已选总学分 <strong>{summary.totalCredits}</strong></span> : null}
+                    {summary?.remainingWillingness ? <span>剩余意愿值 <strong>{summary.remainingWillingness}</strong></span> : null}
+                </div>
+            </header>
+            <div class='course-list elected-list' aria-label='已选课程列表'>
+                {courses.map(course => <ElectedCourseCard course={course} key={course.id} />)}
+            </div>
+            {pagination && pagination.totalPages > 1 ? <Pagination pagination={pagination} /> : null}
+        </section>
+    )
+}
+
+function ElectedCourseCard({ course }: { course: ElectedCourse }) {
+    const [willingness, setWillingness] = useState(course.willingness)
+    const badges = [
+        ...course.teacher.split(',').map(teacher => teacher.trim()).filter(Boolean),
+        course.sectionNumber ? `${course.sectionNumber} 班` : '',
+        course.grade ? `${course.grade} 级` : '',
+        course.pnp,
+    ].filter(Boolean)
+    const updateWillingness = (value: string) => {
+        setWillingness(value)
+        if (!course.willingnessInput) return
+        course.willingnessInput.value = value
+        course.willingnessInput.dispatchEvent(new Event('input', { bubbles: true }))
+        course.willingnessInput.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    return (
+        <article class='course-card elected-card'>
+            <div class='course-card__top'>
+                <div class='course-identity'>
+                    <div class='course-kicker'>
+                        <span>{course.courseCode}</span><span aria-hidden='true'>/</span>
+                        <span>{course.category}</span><span aria-hidden='true'>/</span>
+                        <span>{course.department}</span>
+                    </div>
+                    <h2>
+                        {course.detailUrl ? <a href={course.detailUrl} target='_blank' rel='noreferrer'>{course.courseName}</a> : course.courseName}
+                    </h2>
+                    <div class='badges' aria-label='课程附加信息'>
+                        {badges.map(badge => <span class='badge' key={badge}>{badge}</span>)}
+                    </div>
+                </div>
+                <div class='primary-metrics'>
+                    <div class='metric metric--compact'>
+                        <span class='metric__label'>学分 / 周学时</span>
+                        <strong><span>{formatNumber(course.credits)}</span><small><span>/</span>{formatNumber(course.weeklyHours)}</small></strong>
+                    </div>
+                    <div class='metric metric--capacity'>
+                        <span class='metric__label'>已选 / 限数</span>
+                        <strong><span>{course.selected}</span><small><span>/</span>{course.capacity}</small></strong>
+                    </div>
+                </div>
+            </div>
+            <div class='course-card__schedule'>
+                <details class='raw-schedule'>
+                    <summary>查看详细时间与考试信息</summary>
+                    <div>{course.scheduleLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
+                </details>
+            </div>
+            <div class='course-card__actions'>
+                <div class='course-actions'>
+                    {course.willingnessInput ? (
+                        <div class='willingness-control'>
+                            <label class='willingness'>
+                            <span>意愿值</span>
+                            <input type='number' min={course.willingnessMin || undefined} max={course.willingnessMax || undefined} value={willingness} onInput={event => updateWillingness(event.currentTarget.value)} aria-label={`${course.courseName}意愿值`} />
+                            </label>
+                            {course.willingnessUpdateLink ? <button type='button' class='cancel-button' onClick={() => course.willingnessUpdateLink?.click()}>修改</button> : null}
+                        </div>
+                    ) : null}
+                    <button type='button' class='cancel-button' onClick={() => course.cancelLink.click()}>取消</button>
+                </div>
+            </div>
+        </article>
     )
 }
 
@@ -151,7 +298,7 @@ function CourseCard({
     const progress = Math.min(100, demand * 100)
     const overCapacity = demand >= 1
     const badges = [
-        course.teacher,
+        ...course.teacher.split(',').map(teacher => teacher.trim()).filter(Boolean),
         course.sectionNumber ? `${course.sectionNumber} 班` : '',
         course.grade ? `${course.grade} 级` : '',
         course.pnp,
@@ -264,9 +411,7 @@ function CourseCard({
                                 aria-label={`${course.courseName}意愿值`}
                             />
                         </label>
-                    ) : (
-                        <span class='recommended'></span>
-                    )}
+                    ) : null}
                     <button
                         type='button'
                         class='select-button'

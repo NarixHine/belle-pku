@@ -4,8 +4,11 @@ import { CourseList } from './course-list'
 import { debugError, debugLog } from './debug'
 import {
     findSelectableCourseTable,
+    findElectedCourseTable,
     getCourseTableDiagnostics,
     parseCoursePagination,
+    parseElectedCourses,
+    parseElectedSummary,
     parseSelectableCourses,
 } from './parse-course-table'
 import { parseElectedLessons } from './parse-timetable'
@@ -14,6 +17,7 @@ import './styles.css'
 
 const HOST_NAME = 'belle-pku-timetable'
 const HIDDEN_TABLE_ATTRIBUTE = 'data-belle-hidden-course-table'
+const HIDDEN_HINT_ATTRIBUTE = 'data-belle-hidden-course-hint'
 
 export default defineContentScript({
     matches: ['https://elective.pku.edu.cn/elective2008/*'],
@@ -55,11 +59,24 @@ export default defineContentScript({
                             }
                             table.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                             table.style.setProperty('display', 'none', 'important')
+                            const selectableHint = hidePortalHint('只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程')
+                            const electedTable = findElectedCourseTable()
+                            const electedCourses = parseElectedCourses(electedTable)
+                            const electedHint = hidePortalHint('"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定')
+                            if (electedTable && electedCourses.length > 0) {
+                                electedTable.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
+                                electedTable.style.setProperty('display', 'none', 'important')
+                            }
                             render(
                                 <CourseList
                                     courses={courses}
                                     pagination={parseCoursePagination(table)}
                                     existingLessons={existingLessons}
+                                    electedCourses={electedCourses}
+                                    electedSummary={parseElectedSummary(electedTable)}
+                                    electedPagination={electedTable ? parseCoursePagination(electedTable) : null}
+                                    selectableHint={selectableHint}
+                                    electedHint={electedHint}
                                 />,
                                 container,
                             )
@@ -127,4 +144,18 @@ function restoreTables() {
         table.style.removeProperty('display')
         table.removeAttribute(HIDDEN_TABLE_ATTRIBUTE)
     }
+    for (const hint of document.querySelectorAll<HTMLElement>(`[${HIDDEN_HINT_ATTRIBUTE}]`)) {
+        hint.style.removeProperty('display')
+        hint.removeAttribute(HIDDEN_HINT_ATTRIBUTE)
+    }
+}
+
+function hidePortalHint(phrase: string): string {
+    const hint = Array.from(document.querySelectorAll<HTMLElement>('.errmsg')).find(element =>
+        (element.textContent ?? '').includes(phrase),
+    )
+    if (!hint) return ''
+    hint.setAttribute(HIDDEN_HINT_ATTRIBUTE, 'true')
+    hint.style.setProperty('display', 'none', 'important')
+    return phrase
 }
