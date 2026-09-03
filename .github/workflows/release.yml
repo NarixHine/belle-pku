@@ -29,6 +29,9 @@ jobs:
             - name: Install dependencies
               run: bun install --frozen-lockfile
 
+            - name: Clean generated packages
+              run: rm -rf .output release-packages
+
             - name: Typecheck
               run: bun run typecheck
 
@@ -40,15 +43,22 @@ jobs:
 
             - name: Prepare release packages
               run: |
+                  version="$(node -p "require('./package.json').version")"
+                  chrome=".output/belle-pku-${version}-chrome.zip"
+                  firefox=".output/belle-pku-${version}-firefox.zip"
+                  test -f "$chrome"
+                  test -f "$firefox"
                   mkdir -p release-packages
-                  cp .output/*-chrome.zip release-packages/
-                  cp .output/*-firefox.zip release-packages/
+                  cp "$chrome" release-packages/
+                  cp "$firefox" release-packages/
 
             - name: Upload extension packages
               uses: actions/upload-artifact@v4
               with:
                   name: browser-extension-packages
-                  path: release-packages/*.zip
+                  path: |
+                      release-packages/*-chrome.zip
+                      release-packages/*-firefox.zip
                   if-no-files-found: error
                   retention-days: 14
 
@@ -71,8 +81,13 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
+                  shopt -s nullglob
+                  chrome=(release-packages/*-chrome.zip)
+                  firefox=(release-packages/*-firefox.zip)
+                  test "${#chrome[@]}" -eq 1
+                  test "${#firefox[@]}" -eq 1
                   gh release create "$GITHUB_REF_NAME" \
                       --verify-tag \
                       --generate-notes \
-                      release-packages/*-chrome.zip \
-                      release-packages/*-firefox.zip
+                      "${chrome[0]}" \
+                      "${firefox[0]}"
