@@ -13,7 +13,8 @@
         "zip": "wxt zip",
         "zip:firefox": "wxt zip -b firefox",
         "typecheck": "tsc --noEmit",
-        "postinstall": "wxt prepare"
+        "postinstall": "wxt prepare",
+        "format": "prettier --write ."
     },
     "devDependencies": {
         "typescript": "^5.9.3",

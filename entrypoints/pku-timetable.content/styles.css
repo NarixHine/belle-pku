@@ -191,7 +191,7 @@ select:focus {
 }
 
 .course-list {
-    column-count: 2;
+    column-count: 1;
     column-gap: 16px;
 }
 
@@ -748,13 +748,19 @@ select:focus {
     }
 }
 
-@media (max-width: 980px) {
-    .course-browser {
-        width: min(780px, calc(100% - 48px));
+@media (min-width: 1024px) {
+    .course-list {
+        column-count: 2;
+    }
+}
+
+@media (max-width: 1023px) {
+    .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .course-list {
-        column-count: 1;
+    .search-field {
+        grid-column: 1 / -1;
     }
 }
 

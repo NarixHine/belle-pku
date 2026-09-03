@@ -192,9 +192,7 @@ export function CourseList({
                 <FilterSelect
                     label='冲突'
                     value={conflictFilter}
-                    onChange={value =>
-                        updateViewState({ conflictFilter: value as ConflictFilter })
-                    }
+                    onChange={value => updateViewState({ conflictFilter: value as ConflictFilter })}
                 >
                     <option value='all'>含冲突课程</option>
                     <option value='without-conflicts'>无冲突课程</option>
@@ -326,9 +324,7 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
                     </div>
                     <h2>
                         {course.detailUrl ? (
-                            <a href={course.detailUrl}>
-                                {course.courseName}
-                            </a>
+                            <a href={course.detailUrl}>{course.courseName}</a>
                         ) : (
                             course.courseName
                         )}
@@ -455,9 +451,7 @@ function CourseCard({
                     </div>
                     <h2>
                         {course.detailUrl ? (
-                            <a href={course.detailUrl}>
-                                {course.courseName}
-                            </a>
+                            <a href={course.detailUrl}>{course.courseName}</a>
                         ) : (
                             course.courseName
                         )}
