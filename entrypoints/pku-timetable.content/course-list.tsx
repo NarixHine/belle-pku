@@ -133,9 +133,9 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                 <div class='course-identity'>
                     <div class='course-kicker'>
                         <span>{course.courseCode}</span>
-                        <span aria-hidden='true'>·</span>
+                        <span aria-hidden='true'>/</span>
                         <span>{course.category}</span>
-                        <span aria-hidden='true'>·</span>
+                        <span aria-hidden='true'>/</span>
                         <span>{course.department}</span>
                     </div>
                     <h2>

@@ -4,6 +4,13 @@
 @import '@fontsource/noto-sans-sc/chinese-simplified-500.css';
 @import '@fontsource/noto-sans-sc/chinese-simplified-700.css';
 
+@font-face {
+    font-family: 'SongKe';
+    src: url('./songke.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 400 700;
+}
+
 :host {
     --ink: #201d1d;
     --body: #424245;
@@ -75,6 +82,7 @@ p {
 
 .course-browser h1 {
     color: var(--ink);
+    font-family: 'SongKe', 'Noto Sans SC', sans-serif;
     font-size: 28px;
     font-weight: 700;
     letter-spacing: 0;
@@ -148,16 +156,16 @@ select:focus {
 }
 
 .course-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 16px;
+    column-count: 2;
+    column-gap: 16px;
 }
 
 .course-card {
     overflow: hidden;
     border: 1px solid var(--hairline);
     background: var(--canvas);
+    break-inside: avoid;
+    margin-bottom: 16px;
 }
 
 .course-card__top {
@@ -169,17 +177,20 @@ select:focus {
 
 .course-kicker {
     display: flex;
+    align-items: baseline;
     flex-wrap: wrap;
     gap: 4px;
     color: var(--muted);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
+    line-height: 1.5;
 }
 
 .course-identity h2 {
     margin-top: 4px;
     color: var(--ink);
-    font-size: 18px;
+    font-family: 'SongKe', 'Noto Sans SC', sans-serif;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: 0;
     line-height: 1.4;
@@ -187,6 +198,7 @@ select:focus {
 
 .course-identity h2 a {
     color: inherit;
+    font-family: inherit;
     text-decoration: underline;
     text-decoration-color: var(--ash);
     text-decoration-thickness: 1px;
@@ -633,7 +645,7 @@ select:focus {
     }
 
     .course-list {
-        grid-template-columns: 1fr;
+        column-count: 1;
     }
 }
 
