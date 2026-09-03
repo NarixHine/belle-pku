@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { TimetablePreview } from './timetable-preview'
 import type {
@@ -45,9 +45,20 @@ function readCourseViewState(): Partial<CourseViewState> {
     }
 }
 
-function writeCourseViewState(state: CourseViewState): void {
+function writeCourseViewState(update: Partial<CourseViewState>): void {
     try {
-        sessionStorage.setItem(COURSE_VIEW_STATE_KEY, JSON.stringify(state))
+        sessionStorage.setItem(
+            COURSE_VIEW_STATE_KEY,
+            JSON.stringify({
+                query: '',
+                category: '全部类别',
+                availability: '全部名额',
+                conflictFilter: 'all',
+                sort: 'default',
+                ...readCourseViewState(),
+                ...update,
+            }),
+        )
     } catch {
         // Storage can be unavailable in restrictive browser contexts.
     }
@@ -74,6 +85,14 @@ function FilterSelect({
     )
 }
 
+const defaultCourseViewState: CourseViewState = {
+    query: '',
+    category: '全部类别',
+    availability: '全部名额',
+    conflictFilter: 'all',
+    sort: 'default',
+}
+
 export function CourseList({
     courses,
     pagination,
@@ -84,23 +103,16 @@ export function CourseList({
     selectableHint,
     electedHint,
 }: CourseListProps) {
-    const savedState = readCourseViewState()
-    const [query, setQuery] = useState(savedState.query ?? '')
-    const [category, setCategory] = useState(savedState.category ?? '全部类别')
-    const [availability, setAvailability] = useState(savedState.availability ?? '全部名额')
-    const [conflictFilter, setConflictFilter] = useState<ConflictFilter>(
-        savedState.conflictFilter ?? 'all',
-    )
-    const [sort, setSort] = useState<SortKey>(savedState.sort ?? 'default')
-    useEffect(() => {
-        writeCourseViewState({
-            query,
-            category,
-            availability,
-            conflictFilter,
-            sort,
-        })
-    }, [query, category, availability, conflictFilter, sort])
+    const [viewState, setViewState] = useState<CourseViewState>(() => ({
+        ...defaultCourseViewState,
+        ...readCourseViewState(),
+    }))
+    const { query, category, availability, conflictFilter, sort } = viewState
+    const updateViewState = (update: Partial<CourseViewState>) => {
+        const next = { ...viewState, ...update }
+        setViewState(next)
+        writeCourseViewState(next)
+    }
     const categories = Array.from(new Set(courses.map(course => course.category).filter(Boolean)))
     const filteredCourses = (() => {
         const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -154,17 +166,25 @@ export function CourseList({
                     <input
                         type='search'
                         value={query}
-                        onInput={event => setQuery(event.currentTarget.value)}
+                        onInput={event => updateViewState({ query: event.currentTarget.value })}
                         placeholder='搜索课程、教师或课程号'
                     />
                 </label>
-                <FilterSelect label='课程类别' value={category} onChange={setCategory}>
+                <FilterSelect
+                    label='课程类别'
+                    value={category}
+                    onChange={value => updateViewState({ category: value })}
+                >
                     <option>全部类别</option>
                     {categories.map(value => (
                         <option key={value}>{value}</option>
                     ))}
                 </FilterSelect>
-                <FilterSelect label='名额状态' value={availability} onChange={setAvailability}>
+                <FilterSelect
+                    label='名额状态'
+                    value={availability}
+                    onChange={value => updateViewState({ availability: value })}
+                >
                     <option>全部名额</option>
                     <option>尚有名额</option>
                     <option>竞争激烈</option>
@@ -172,7 +192,9 @@ export function CourseList({
                 <FilterSelect
                     label='冲突'
                     value={conflictFilter}
-                    onChange={value => setConflictFilter(value as ConflictFilter)}
+                    onChange={value =>
+                        updateViewState({ conflictFilter: value as ConflictFilter })
+                    }
                 >
                     <option value='all'>含冲突课程</option>
                     <option value='without-conflicts'>无冲突课程</option>
@@ -180,7 +202,7 @@ export function CourseList({
                 <FilterSelect
                     label='排序'
                     value={sort}
-                    onChange={value => setSort(value as SortKey)}
+                    onChange={value => updateViewState({ sort: value as SortKey })}
                 >
                     <option value='default'>默认排序</option>
                     <option value='availability'>余量优先</option>
@@ -206,11 +228,7 @@ export function CourseList({
                     <button
                         type='button'
                         onClick={() => {
-                            setQuery('')
-                            setCategory('全部类别')
-                            setAvailability('全部名额')
-                            setConflictFilter('all')
-                            setSort('default')
+                            updateViewState(defaultCourseViewState)
                         }}
                     >
                         清除筛选
