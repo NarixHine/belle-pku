@@ -14,44 +14,39 @@ Load `.output/chrome-mv3` as an unpacked Chromium extension or `.output/firefox-
 ## Behavior
 
 - Runs only on `https://elective.pku.edu.cn/elective2008/.../electiveWork/` routes.
-- Treats the `.datagrid` table whose action header is `取消` as the authoritative `已选列表` and renders its schedules as existing lessons.
-- Uses only the `.datagrid` table whose action header is `预选` as the hover source, so rows in `已选列表` never become candidates.
-- Discovers schedule and identity columns by Chinese header labels rather than fixed indexes.
-- Previews only the section whose conflict badge is hovered. Existing lessons have solid borders; the candidate has a dashed border and spacious diagonal hatching.
-- Marks overlapping candidate meetings as conflicts while leaving the existing block visible below them.
-- Uses one pointer-transparent Shadow DOM overlay, so links, inputs, pagination, and `预选` continue to behave normally.
+- Treats the `.datagrid` table whose action header is `取消` as the authoritative `已选列表` for conflict detection, without changing its presentation.
+- Replaces only the `.datagrid` table whose action header is `预选` with a two-column course list on wide screens and one column on narrower screens.
+- Discovers all course columns by Chinese header labels rather than fixed indexes.
+- Shows the visual timetable by default, keeps raw schedule and exam text in a disclosure, and visualizes conflicts and demand against capacity.
+- Proxies willingness inputs, course links, preselection actions, and pagination to the portal's original controls.
+- Supports keyword, category, and availability filters plus availability, demand, and credit sorting.
 - Parses only rows currently in the DOM. It does not fetch other result pages or persist its own selected-course state.
 
 ## Manual Smoke Check
 
 - Verify unrelated PKU routes do not create `<belle-pku-timetable>`.
-- Hover the conflict badge for a selectable row.
-- Check single-slot, multi-slot, and multi-meeting sections.
-- Check a conflicting section and a conflict-free section.
-- Replace or append a course row in DevTools and hover it.
+- Check keyword/category/availability filters and each sorting option.
+- Check single-slot, multi-slot, multi-meeting, and exam-only sections.
+- Check conflict styling and capacity progress for under- and over-subscribed courses.
+- Replace or append a course row in DevTools and confirm the course list redraws.
 - Check back/forward navigation, narrow viewports, and reduced-motion mode.
-- Confirm portal links, inputs, pagination, and `预选` clicks are unobstructed.
+- Confirm course links, willingness inputs, pagination, and `预选` proxy to the portal controls.
 - Confirm there are no console errors in Chromium or Firefox.
 
 ## Debugging
 
 Open the page's DevTools Console and filter for `[Belle PKU]`. Debug logging is enabled by default and reports URL gating, table discovery, row parsing, existing lessons, and rendering.
 
-Expected sequence after reloading and hovering a selectable row:
+Expected sequence after reloading a selectable list:
 
 ```text
-[Belle PKU] Content script loaded
-[Belle PKU] Shadow UI mounted
-[Belle PKU] Hover controller installed with badge pointer delegation
-[Belle PKU] Hover: capture listener received its first mouseover
-[Belle PKU] Hover: course badge entered
 [Belle PKU] Row parser: candidate parsed
 [Belle PKU] Existing lessons parsed
-[Belle PKU] Preview rendered
+[Belle PKU] Course cards mounted
 ```
 
 Disable logs for the current tab with `sessionStorage.setItem('belle-pku-debug', '0')`, or re-enable them with `sessionStorage.removeItem('belle-pku-debug')`, then reload the page.
 
 ## Lifecycle
 
-The content script mounts on supported routes, parses the elected schedule, and adds conflict badges to selectable rows. Hovering a badge briefly parses that row and opens the pointer-transparent preview; leaving it closes the preview. Table mutations rebuild badges, route changes tear down the current UI, and invalidation cleans up everything.
+The content script mounts on supported routes, parses the elected schedule, and replaces the selectable table with course cards in an isolated Shadow DOM. Table mutations redraw the card list, route changes tear down the UI and restore the source table, and invalidation cleans up everything.

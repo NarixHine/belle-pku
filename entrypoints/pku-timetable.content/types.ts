@@ -22,6 +22,57 @@ export interface CourseSection {
     sourceRow: HTMLTableRowElement
 }
 
+export interface SelectableCourse extends CourseSection {
+    category: string
+    credits: number
+    weeklyHours: number
+    department: string
+    grade: string
+    pnp: string
+    capacity: number
+    selected: number
+    willingness: string
+    scheduleLines: string[]
+    detailUrl: string
+    actionLink: HTMLAnchorElement
+    willingnessInput: HTMLInputElement | null
+    willingnessMin: string
+    willingnessMax: string
+    conflictCount: number
+}
+
+export interface ElectedCourse extends CourseSection {
+    category: string
+    credits: number
+    weeklyHours: number
+    department: string
+    grade: string
+    pnp: string
+    capacity: number
+    selected: number
+    willingness: string
+    scheduleLines: string[]
+    detailUrl: string
+    cancelLink: HTMLAnchorElement
+    willingnessInput: HTMLInputElement | null
+    willingnessUpdateLink: HTMLAnchorElement | null
+    willingnessMin: string
+    willingnessMax: string
+}
+
+export interface ElectedSummary {
+    totalCredits: string
+    remainingWillingness: string
+}
+
+export interface CoursePagination {
+    currentPage: number
+    totalPages: number
+    nextLink: HTMLAnchorElement | null
+    lastLink: HTMLAnchorElement | null
+    pageSelect: HTMLSelectElement | null
+}
+
 export type PreviewBlockKind = 'existing' | 'candidate' | 'conflict-overlay'
 
 export interface PreviewBlock {

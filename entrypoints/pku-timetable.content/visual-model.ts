@@ -21,8 +21,6 @@ export function createPreviewModel(
 ): PreviewModel {
     const visibleExistingLessons = existingLessons.filter(lesson => lesson.dayOfWeek <= 5)
     const visibleCandidateLessons = section.lessons.filter(lesson => lesson.dayOfWeek <= 5)
-    // The candidate is always one continuous box. Conflict intersections are
-    // represented by separate overlays and never split or relabel this box.
     const candidateBlocks = visibleCandidateLessons.map((lesson, lessonIndex) => {
         const conflictNames = Array.from(
             new Set(
@@ -33,9 +31,6 @@ export function createPreviewModel(
         )
         return toLessonBlock(lesson, 'candidate', section.courseName, lessonIndex, conflictNames)
     })
-    // Existing lessons stay as one continuous visual block. Mark the whole
-    // box when it overlaps the candidate so its conflict styling can apply;
-    // the separate overlay still identifies the exact intersection.
     const existingBlocks = visibleExistingLessons.map((lesson, lessonIndex) => {
         const conflictNames = Array.from(
             new Set(
@@ -154,8 +149,6 @@ function toBlock(
         conflictNames,
         color: kind === 'candidate' && conflictNames.length > 0 ? '#d95f59' : colorForCourse(label),
         showLabel: slotOffset === 0,
-        // Hatching is rendered by the separate conflict-overlay block so the
-        // underlying existing lesson remains one continuous box.
         hatching: false,
     }
 }

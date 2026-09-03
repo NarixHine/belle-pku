@@ -12,11 +12,6 @@ export function PreviewBlock({ block }: PreviewBlockProps) {
         '--block-span': block.rowSpan,
         '--block-color': block.color,
     } as JSX.CSSProperties
-    // Conflict cells intentionally contain no old/new lesson name. The
-    // continuous lesson box remains intact; the standalone overlay is
-    // the only conflict detail drawn over its intersection.
-    // The preview is a visual schedule only: never paint either the existing
-    // lesson name or the candidate lesson name inside the grid.
     const details =
         block.conflictLabel ??
         (block.conflict ? `与${formatConflictNames(block.conflictNames)}冲突` : block.label)
@@ -37,10 +32,8 @@ export function PreviewBlock({ block }: PreviewBlockProps) {
         .filter(Boolean)
         .join(' ')
 
-    const ariaLabel = details
-
     return (
-        <div class={className} style={style} title={details} aria-label={ariaLabel}>
+        <div class={className} style={style} title={details} aria-label={details}>
             {visibleText && (
                 <span
                     class={

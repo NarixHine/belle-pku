@@ -2,7 +2,7 @@
     "name": "belle-pku",
     "description": "Preview PKU elective course sections on your current timetable.",
     "private": true,
-    "version": "0.0.1",
+    "version": "0.0.3",
     "type": "module",
     "scripts": {
         "dev": "wxt",
@@ -23,6 +23,9 @@
     },
     "dependencies": {
         "@floating-ui/dom": "^1.8.0",
+        "@fontsource/dm-mono": "^5.3.0",
+        "@fontsource/noto-sans-sc": "^5.3.0",
+        "@kamod-ch/ui": "^1.1.0",
         "preact": "^10.29.8"
     }
 }

@@ -9,13 +9,11 @@
 - Language: TypeScript `5.x`, with ES modules enabled.
 - Supported browser builds: Chromium Manifest V3 and Firefox Manifest V2.
 - Runtime target: `https://elective.pku.edu.cn/elective2008/*`.
-- Main feature: preview a selectable PKU course section against the current timetable.
 - Source entrypoint: `entrypoints/pku-timetable.content/index.tsx`.
-- Generated directories: `.wxt/` and `.output/`; both are ignored and should not be edited manually.
 
 ## Package Manager
 
-- Always use Bun. Do not use npm, pnpm, or yarn for project commands.
+- Always use Bun.
 - The repository lockfile is `bun.lock`; keep it in sync with dependency changes.
 - Install dependencies with `bun install`.
 - Run package scripts with `bun run <script>`.
