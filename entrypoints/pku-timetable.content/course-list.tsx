@@ -308,7 +308,7 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
                     </div>
                     <h2>
                         {course.detailUrl ? (
-                            <a href={course.detailUrl} target='_blank' rel='noreferrer'>
+                            <a href={course.detailUrl}>
                                 {course.courseName}
                             </a>
                         ) : (
@@ -437,7 +437,7 @@ function CourseCard({
                     </div>
                     <h2>
                         {course.detailUrl ? (
-                            <a href={course.detailUrl} target='_blank' rel='noreferrer'>
+                            <a href={course.detailUrl}>
                                 {course.courseName}
                             </a>
                         ) : (
