@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { TimetablePreview } from './timetable-preview'
 import type {
@@ -23,6 +23,35 @@ interface CourseListProps {
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
 type ConflictFilter = 'all' | 'without-conflicts'
+
+interface CourseViewState {
+    query: string
+    category: string
+    availability: string
+    conflictFilter: ConflictFilter
+    sort: SortKey
+}
+
+const COURSE_VIEW_STATE_KEY = `belle-pku-course-view:${location.pathname}`
+
+function readCourseViewState(): Partial<CourseViewState> {
+    try {
+        const value = sessionStorage.getItem(COURSE_VIEW_STATE_KEY)
+        if (!value) return {}
+        const parsed: unknown = JSON.parse(value)
+        return parsed && typeof parsed === 'object' ? (parsed as Partial<CourseViewState>) : {}
+    } catch {
+        return {}
+    }
+}
+
+function writeCourseViewState(state: CourseViewState): void {
+    try {
+        sessionStorage.setItem(COURSE_VIEW_STATE_KEY, JSON.stringify(state))
+    } catch {
+        // Storage can be unavailable in restrictive browser contexts.
+    }
+}
 
 function FilterSelect({
     label,
@@ -55,11 +84,23 @@ export function CourseList({
     selectableHint,
     electedHint,
 }: CourseListProps) {
-    const [query, setQuery] = useState('')
-    const [category, setCategory] = useState('全部类别')
-    const [availability, setAvailability] = useState('全部名额')
-    const [conflictFilter, setConflictFilter] = useState<ConflictFilter>('all')
-    const [sort, setSort] = useState<SortKey>('default')
+    const savedState = readCourseViewState()
+    const [query, setQuery] = useState(savedState.query ?? '')
+    const [category, setCategory] = useState(savedState.category ?? '全部类别')
+    const [availability, setAvailability] = useState(savedState.availability ?? '全部名额')
+    const [conflictFilter, setConflictFilter] = useState<ConflictFilter>(
+        savedState.conflictFilter ?? 'all',
+    )
+    const [sort, setSort] = useState<SortKey>(savedState.sort ?? 'default')
+    useEffect(() => {
+        writeCourseViewState({
+            query,
+            category,
+            availability,
+            conflictFilter,
+            sort,
+        })
+    }, [query, category, availability, conflictFilter, sort])
     const categories = Array.from(new Set(courses.map(course => course.category).filter(Boolean)))
     const filteredCourses = (() => {
         const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -169,6 +210,7 @@ export function CourseList({
                             setCategory('全部类别')
                             setAvailability('全部名额')
                             setConflictFilter('all')
+                            setSort('default')
                         }}
                     >
                         清除筛选
