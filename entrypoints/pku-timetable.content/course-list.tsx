@@ -35,9 +35,12 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
                 return matchesQuery && matchesCategory && matchesAvailability
             })
             .sort((a, b) => {
-                if (sort === 'availability') return b.capacity - b.selected - (a.capacity - a.selected)
+                if (sort === 'availability')
+                    return b.capacity - b.selected - (a.capacity - a.selected)
                 if (sort === 'demand') {
-                    return b.selected / Math.max(1, b.capacity) - a.selected / Math.max(1, a.capacity)
+                    return (
+                        b.selected / Math.max(1, b.capacity) - a.selected / Math.max(1, a.capacity)
+                    )
                 }
                 if (sort === 'credits') return b.credits - a.credits
                 return 0
@@ -47,17 +50,18 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
     return (
         <main class='course-browser'>
             <header class='course-browser__header'>
-                <div>
-                    <h1>本学期可选课程</h1>
-                    <p class='course-browser__summary'>共 {courses.length} 个班级，选择适合你的时间与名额。</p>
-                </div>
-                <span class='result-count' aria-live='polite'>显示 {filteredCourses.length} 门</span>
+                <h1>本学期可选课程</h1>
+                <span class='result-count' aria-live='polite'>
+                    显示 {filteredCourses.length} 门
+                </span>
             </header>
 
             <section class='filters' aria-label='筛选与排序'>
                 <label class='search-field'>
                     <span class='sr-only'>搜索课程</span>
-                    <span class='search-marker' aria-hidden='true'>[/]</span>
+                    <span class='search-marker' aria-hidden='true'>
+                        [/]
+                    </span>
                     <input
                         type='search'
                         value={query}
@@ -67,14 +71,22 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
                 </label>
                 <label>
                     <span class='sr-only'>课程类别</span>
-                    <select value={category} onChange={event => setCategory(event.currentTarget.value)}>
+                    <select
+                        value={category}
+                        onChange={event => setCategory(event.currentTarget.value)}
+                    >
                         <option>全部类别</option>
-                        {categories.map(value => <option key={value}>{value}</option>)}
+                        {categories.map(value => (
+                            <option key={value}>{value}</option>
+                        ))}
                     </select>
                 </label>
                 <label>
                     <span class='sr-only'>名额状态</span>
-                    <select value={availability} onChange={event => setAvailability(event.currentTarget.value)}>
+                    <select
+                        value={availability}
+                        onChange={event => setAvailability(event.currentTarget.value)}
+                    >
                         <option>全部名额</option>
                         <option>尚有名额</option>
                         <option>竞争激烈</option>
@@ -82,7 +94,10 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
                 </label>
                 <label>
                     <span class='sr-only'>排序</span>
-                    <select value={sort} onChange={event => setSort(event.currentTarget.value as SortKey)}>
+                    <select
+                        value={sort}
+                        onChange={event => setSort(event.currentTarget.value as SortKey)}
+                    >
                         <option value='default'>默认排序</option>
                         <option value='availability'>余量优先</option>
                         <option value='demand'>竞争度优先</option>
@@ -93,21 +108,44 @@ export function CourseList({ courses, pagination, existingLessons }: CourseListP
 
             {filteredCourses.length ? (
                 <section class='course-list' aria-label='课程列表'>
-                    {filteredCourses.map(course => <CourseCard course={course} existingLessons={existingLessons} key={course.id} />)}
+                    {filteredCourses.map(course => (
+                        <CourseCard
+                            course={course}
+                            existingLessons={existingLessons}
+                            key={course.id}
+                        />
+                    ))}
                 </section>
             ) : (
                 <section class='empty-state'>
                     <h2>没有符合条件的课程</h2>
                     <p>减少筛选条件或尝试其他关键词。</p>
-                    <button type='button' onClick={() => { setQuery(''); setCategory('全部类别'); setAvailability('全部名额') }}>清除筛选</button>
+                    <button
+                        type='button'
+                        onClick={() => {
+                            setQuery('')
+                            setCategory('全部类别')
+                            setAvailability('全部名额')
+                        }}
+                    >
+                        清除筛选
+                    </button>
                 </section>
             )}
-            {pagination && pagination.totalPages > 1 ? <Pagination pagination={pagination} /> : null}
+            {pagination && pagination.totalPages > 1 ? (
+                <Pagination pagination={pagination} />
+            ) : null}
         </main>
     )
 }
 
-function CourseCard({ course, existingLessons }: { course: SelectableCourse; existingLessons: LessonSlot[] }) {
+function CourseCard({
+    course,
+    existingLessons,
+}: {
+    course: SelectableCourse
+    existingLessons: LessonSlot[]
+}) {
     const [willingness, setWillingness] = useState(course.willingness)
     const demand = course.capacity ? course.selected / course.capacity : 0
     const progress = Math.min(100, demand * 100)
@@ -139,26 +177,64 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                         <span>{course.department}</span>
                     </div>
                     <h2>
-                        {course.detailUrl ? <a href={course.detailUrl} target='_blank' rel='noreferrer'>{course.courseName}</a> : course.courseName}
+                        {course.detailUrl ? (
+                            <a href={course.detailUrl} target='_blank' rel='noreferrer'>
+                                {course.courseName}
+                            </a>
+                        ) : (
+                            course.courseName
+                        )}
                     </h2>
                     <div class='badges' aria-label='课程附加信息'>
-                        {badges.map(badge => <span class='badge' key={badge}>{badge}</span>)}
-                        {course.conflictCount ? <span class='badge badge--danger'>{course.conflictCount} 处冲突</span> : null}
+                        {badges.map(badge => (
+                            <span class='badge' key={badge}>
+                                {badge}
+                            </span>
+                        ))}
+                        {course.conflictCount ? (
+                            <span class='badge badge--danger'>{course.conflictCount} 处冲突</span>
+                        ) : null}
                     </div>
                 </div>
 
                 <div class='primary-metrics'>
                     <div class='metric metric--compact'>
                         <span class='metric__label'>学分 / 周学时</span>
-                        <strong><span>{formatNumber(course.credits)}</span><small><span>/</span>{formatNumber(course.weeklyHours)}</small></strong>
+                        <strong>
+                            <span>{formatNumber(course.credits)}</span>
+                            <small>
+                                <span>/</span>
+                                {formatNumber(course.weeklyHours)}
+                            </small>
+                        </strong>
                     </div>
                     <div class='metric metric--capacity'>
                         <span class='metric__label'>已选 / 限数</span>
-                        <strong class={overCapacity ? 'is-danger' : ''}><span>{course.selected}</span><small><span>/</span>{course.capacity}</small></strong>
-                        <div class='progress' role='progressbar' aria-label='已选人数占限数比例' aria-valuemin={0} aria-valuemax={course.capacity} aria-valuenow={course.selected}>
-                            <span class={overCapacity ? 'is-over' : ''} style={{ width: `${progress}%` }} />
+                        <strong class={overCapacity ? 'is-danger' : ''}>
+                            <span>{course.selected}</span>
+                            <small>
+                                <span>/</span>
+                                {course.capacity}
+                            </small>
+                        </strong>
+                        <div
+                            class='progress'
+                            role='progressbar'
+                            aria-label='已选人数占限数比例'
+                            aria-valuemin={0}
+                            aria-valuemax={course.capacity}
+                            aria-valuenow={course.selected}
+                        >
+                            <span
+                                class={overCapacity ? 'is-over' : ''}
+                                style={{ width: `${progress}%` }}
+                            />
                         </div>
-                        <span class='metric__hint'>{overCapacity ? `超出限数 ${course.selected - course.capacity} 人` : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}</span>
+                        <span class='metric__hint'>
+                            {overCapacity
+                                ? `超出容量 ${course.selected - course.capacity} 人`
+                                : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -167,7 +243,11 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                 <TimetablePreview model={createPreviewModel(existingLessons, course)} />
                 <details class='raw-schedule'>
                     <summary>查看详细时间与考试信息</summary>
-                    <div>{course.scheduleLines.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
+                    <div>
+                        {course.scheduleLines.map((line, index) => (
+                            <p key={`${line}-${index}`}>{line}</p>
+                        ))}
+                    </div>
                 </details>
             </div>
             <div class='course-card__actions'>
@@ -184,8 +264,16 @@ function CourseCard({ course, existingLessons }: { course: SelectableCourse; exi
                                 aria-label={`${course.courseName}意愿值`}
                             />
                         </label>
-                    ) : <span class='recommended'></span>}
-                    <button type='button' class='select-button' onClick={() => course.actionLink.click()}>预选</button>
+                    ) : (
+                        <span class='recommended'></span>
+                    )}
+                    <button
+                        type='button'
+                        class='select-button'
+                        onClick={() => course.actionLink.click()}
+                    >
+                        预选
+                    </button>
                 </div>
             </div>
         </article>
@@ -203,11 +291,31 @@ function Pagination({ pagination }: { pagination: CoursePagination }) {
 
     return (
         <nav class='pagination' aria-label='课程分页'>
-            <span>第 {pagination.currentPage} / {pagination.totalPages} 页</span>
+            <span>
+                第 {pagination.currentPage} / {pagination.totalPages} 页
+            </span>
             <div>
-                <button type='button' disabled={pagination.currentPage <= 1} onClick={() => goToPage(pagination.currentPage - 1)}>上一页</button>
-                <button type='button' disabled={!pagination.nextLink} onClick={() => pagination.nextLink?.click()}>下一页</button>
-                <button type='button' disabled={!pagination.lastLink} onClick={() => pagination.lastLink?.click()}>末页</button>
+                <button
+                    type='button'
+                    disabled={pagination.currentPage <= 1}
+                    onClick={() => goToPage(pagination.currentPage - 1)}
+                >
+                    上一页
+                </button>
+                <button
+                    type='button'
+                    disabled={!pagination.nextLink}
+                    onClick={() => pagination.nextLink?.click()}
+                >
+                    下一页
+                </button>
+                <button
+                    type='button'
+                    disabled={!pagination.lastLink}
+                    onClick={() => pagination.lastLink?.click()}
+                >
+                    末页
+                </button>
             </div>
         </nav>
     )
