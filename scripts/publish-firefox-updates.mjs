@@ -64,7 +64,7 @@ function assertEnv() {
 }
 
 /** AWS SigV4 for a single S3 PUT/GET against R2. */
-async function s3Request(method, key, { body, contentType, devMode } = {}) {
+async function s3Request(method, key, { body, contentType } = {}) {
     const endpoint = new URL(process.env.R2_S3_ENDPOINT)
     const accessKey = process.env.R2_ACCESS_KEY_ID
     const secretKey = process.env.R2_SECRET_ACCESS_KEY
@@ -85,10 +85,6 @@ async function s3Request(method, key, { body, contentType, devMode } = {}) {
     if (contentType) {
         headers['content-type'] = contentType
     }
-    // Dev-only escape hatch; production flow requires secrets.
-    if (devMode && !accessKey && !secretKey) {
-        headers.authorization = ''
-    }
 
     const signedHeaders = Object.keys(headers).sort().join(';')
     const canonicalHeaders = Object.keys(headers)
@@ -99,8 +95,9 @@ async function s3Request(method, key, { body, contentType, devMode } = {}) {
     const scope = `${dateStamp}/${region}/s3/aws4_request`
     const stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, createHash('sha256').update(canonicalRequest).digest('hex')].join('\n')
 
-    const hmac = (key, data) => createHash('sha256').update(key).update(data).digest()
-    const signingKey = hmac(hmac(hmac(hmac(`AWS4${secretKey}`, dateStamp), region), 's3'), 'aws4_request')
+    // AWS SigV4: every derivation step is HMAC-SHA256 (not a plain hash).
+    const hmacSha256 = (key, data) => createHmac('sha256', key).update(data).digest()
+    const signingKey = hmacSha256(hmacSha256(hmacSha256(hmacSha256(`AWS4${secretKey}`, dateStamp), region), 's3'), 'aws4_request')
     const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex')
 
     const response = await fetch(url, {
@@ -111,13 +108,26 @@ async function s3Request(method, key, { body, contentType, devMode } = {}) {
     return response
 }
 
+/** R2 S3 errors return an XML body naming the failure (SignatureMismatch, InvalidAccessKeyId, AccessDenied…). */
+async function describeError(response) {
+    let detail = ''
+    try {
+        const text = await response.text()
+        const match = text.match(/<Code>([^<]+)<\/Code>/)
+        detail = match ? ` (${match[1]})` : ''
+    } catch {
+        // ignore body read failures
+    }
+    return detail
+}
+
 async function s3Get(key) {
-    const response = await retry(`GET ${key}`, () => s3Request('GET', key, { devMode: true }))
+    const response = await retry(`GET ${key}`, () => s3Request('GET', key))
     if (response.status === 404) {
         return null
     }
     if (!response.ok) {
-        throw new Error(`GET ${key} -> HTTP ${response.status}`)
+        throw new Error(`GET ${key} -> HTTP ${response.status}${await describeError(response)}`)
     }
     return Buffer.from(await response.arrayBuffer())
 }
@@ -125,12 +135,12 @@ async function s3Get(key) {
 async function s3Put(key, body, contentType) {
     const response = await retry(`PUT ${key}`, () => s3Request('PUT', key, { body, contentType }))
     if (!response.ok) {
-        throw new Error(`PUT ${key} -> HTTP ${response.status}`)
+        throw new Error(`PUT ${key} -> HTTP ${response.status}${await describeError(response)}`)
     }
 }
 
 async function s3Head(key) {
-    const response = await retry(`HEAD ${key}`, () => s3Request('HEAD', key, { devMode: true }))
+    const response = await retry(`HEAD ${key}`, () => s3Request('HEAD', key))
     return response.status
 }
 
