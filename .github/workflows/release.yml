@@ -173,6 +173,13 @@ jobs:
             contents: write
 
         steps:
+            # gh release create --verify-tag shells out to git; without a checkout
+            # it fails with "fatal: not a git repository".
+            - name: Check out repository
+              uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
             - name: Download signed packages
               uses: actions/download-artifact@v4
               with:
