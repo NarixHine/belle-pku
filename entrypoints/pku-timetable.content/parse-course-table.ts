@@ -89,12 +89,20 @@ export function findPlannableCourseTable(): HTMLTableElement | null {
     return findCourseTableByAction('加入可选列表', 'addToPlan.do')
 }
 
+export function findSupplementCourseTable(): HTMLTableElement | null {
+    return findCourseTableByAction('补选', 'electSupplement.do')
+}
+
 export function findActionableCourseTable(): HTMLTableElement | null {
-    return findSelectableCourseTable() ?? findPlannableCourseTable()
+    return findSelectableCourseTable() ?? findPlannableCourseTable() ?? findSupplementCourseTable()
 }
 
 export function findElectedCourseTable(): HTMLTableElement | null {
     return findCourseTableByAction('取消', 'cancelCourse.do')
+}
+
+export function parseElectedCoursesFromTable(table: HTMLTableElement | null): ElectedCourse[] {
+    return parseElectedCourses(table)
 }
 
 function findCourseTableByAction(
@@ -204,9 +212,26 @@ export function parseActionableCourses(
     const columns = getOptionalColumns(table, actionableColumnAliases)
     const resolvedActionPath =
         actionPath ??
-        (table.querySelector('a[href*="addToPlan.do"]') ? 'addToPlan.do' : 'electCourse.do')
+        (table.querySelector('a[href*="electSupplement.do"]')
+            ? 'electSupplement.do'
+            : table.querySelector('a[href*="addToPlan.do"]')
+              ? 'addToPlan.do'
+              : 'electCourse.do')
     const resolvedActionLabel =
-        actionLabel ?? (resolvedActionPath === 'addToPlan.do' ? '加入选课计划' : '预选')
+        actionLabel ??
+        (resolvedActionPath === 'electSupplement.do'
+            ? '补选'
+            : resolvedActionPath === 'addToPlan.do'
+              ? '加入选课计划'
+              : '预选')
+    const requiresCaptcha = resolvedActionPath === 'electSupplement.do'
+    const captchaInputs = requiresCaptcha
+        ? Array.from(
+              document.querySelectorAll<HTMLInputElement>('#validCode, input[name="validCode"]'),
+          )
+        : []
+    const captchaImageSrc =
+        document.querySelector<HTMLImageElement>('#validCodeImg img, img#imgname')?.src ?? ''
     const headers = getHeaderTexts(table)
     const knownIndexes = new Set([
         ...Object.values(getOptionalColumns(table, courseColumnAliases)),
@@ -220,7 +245,7 @@ export function parseActionableCourses(
         const actionLink = row.querySelector<HTMLAnchorElement>(`a[href*="${resolvedActionPath}"]`)
         if (!section || !actionLink) return []
 
-        const [capacity, selected] = parseCapacity(cellText(row, columns.capacity))
+        const [capacity, selected, waitlisted] = parseCapacity(cellText(row, columns.capacity))
         const actionCellIndex = actionLink.closest('td')?.cellIndex ?? -1
         const willingnessCell = row.cells[columns.willingness]
         const willingnessInput = willingnessCell?.querySelector<HTMLInputElement>('input') ?? null
@@ -239,6 +264,7 @@ export function parseActionableCourses(
                 pnp: formatPnp(cellText(row, columns.pnp)),
                 capacity,
                 selected,
+                waitlisted,
                 willingness: willingnessInput?.value || cellText(row, columns.willingness),
                 extraFields: headers.flatMap((label, index) => {
                     const value = cellText(row, index)
@@ -251,6 +277,9 @@ export function parseActionableCourses(
                     row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
                 actionLink,
                 actionLabel: resolvedActionLabel,
+                requiresCaptcha,
+                captchaInputs,
+                captchaImageSrc,
                 willingnessInput,
                 willingnessMin: willingnessInput?.min || '',
                 willingnessMax: willingnessInput?.max || '',
@@ -264,8 +293,16 @@ export function parseElectedCourses(
     table: HTMLTableElement | null = findElectedCourseTable(),
 ): ElectedCourse[] {
     if (!table) return []
-    const columns = getColumnsFromLabels(table, { ...selectableColumnLabels, action: '取消' })
-    if (!columns) return []
+    const columns = getOptionalColumns(table, {
+        ...courseColumnAliases,
+        ...actionableColumnAliases,
+    })
+    const headers = getHeaderTexts(table)
+    const actionIndex = headers.findIndex(
+        header => header.includes('取消') || header.includes('退选'),
+    )
+    if (columns.courseCode < 0 || columns.courseName < 0 || columns.info < 0 || actionIndex < 0)
+        return []
 
     return Array.from(
         table.querySelectorAll<HTMLTableRowElement>('tr.datagrid-even, tr.datagrid-odd'),
@@ -330,6 +367,7 @@ export function parseCoursePagination(table: HTMLTableElement): CoursePagination
     return {
         currentPage: Number.parseInt(match[1], 10),
         totalPages: Number.parseInt(match[2], 10),
+        firstLink: links.find(link => link.textContent?.trim() === 'First') ?? null,
         nextLink: links.find(link => link.textContent?.trim() === 'Next') ?? null,
         lastLink: links.find(link => link.textContent?.trim() === 'Last') ?? null,
         pageSelect: table.querySelector<HTMLSelectElement>('select[name="netui_row"]'),
@@ -401,6 +439,7 @@ export function getCourseTableDiagnostics(): object {
         hasElectAction: Boolean(table.querySelector('a[href*="electCourse.do"]')),
         hasCancelAction: Boolean(table.querySelector('a[href*="cancelCourse.do"]')),
         hasPlanAction: Boolean(table.querySelector('a[href*="addToPlan.do"]')),
+        hasSupplementAction: Boolean(table.querySelector('a[href*="electSupplement.do"]')),
     })
 
     return {
@@ -408,6 +447,7 @@ export function getCourseTableDiagnostics(): object {
         selectableFound: Boolean(findSelectableCourseTable()),
         electedFound: Boolean(findElectedCourseTable()),
         plannableFound: Boolean(findPlannableCourseTable()),
+        supplementFound: Boolean(findSupplementCourseTable()),
         tables: tables.map(describe),
     }
 }
@@ -418,12 +458,15 @@ function parseOptionalNumber(value: string): number | null {
     return Number.isFinite(parsed) ? parsed : null
 }
 
-function parseCapacity(value: string): [number | null, number | null] {
-    if (!value.includes('/')) return [null, null]
-    const [capacity, selected] = value.split('/').map(part => Number.parseInt(part.trim(), 10))
+function parseCapacity(value: string): [number | null, number | null, number | null] {
+    if (!value.includes('/')) return [null, null, null]
+    const [capacity, selected, waitlisted] = value
+        .split('/')
+        .map(part => Number.parseInt(part.trim(), 10))
     return [
         capacity !== undefined && Number.isFinite(capacity) ? capacity : null,
         selected !== undefined && Number.isFinite(selected) ? selected : null,
+        waitlisted !== undefined && Number.isFinite(waitlisted) ? waitlisted : null,
     ]
 }
 

@@ -349,6 +349,10 @@ select:focus {
     font-size: 10px;
 }
 
+.metric__label.is-danger {
+    color: var(--danger);
+}
+
 .metric strong {
     display: flex;
     align-items: baseline;
@@ -614,6 +618,54 @@ select:focus {
     gap: 8px;
 }
 
+.captcha-control {
+    display: grid;
+    gap: 3px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.captcha-control__fields {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.captcha-control input {
+    width: 82px;
+    padding: 0 6px;
+    text-align: center;
+    text-transform: lowercase;
+}
+
+.captcha-control img {
+    width: 88px;
+    height: 30px;
+    object-fit: contain;
+    background: var(--surface-soft);
+}
+
+.home-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    border: 1px solid var(--hairline);
+    padding: 0 12px;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.home-button:hover {
+    border-color: var(--hairline-strong);
+    background: var(--surface-soft);
+}
+
+.home-button img {
+    width: 16px;
+    height: 16px;
+}
+
 .select-button,
 .empty-state button {
     height: 36px;
@@ -671,6 +723,13 @@ select:focus {
     outline-offset: 2px;
 }
 
+.select-button:disabled {
+    border-color: var(--hairline);
+    background: var(--surface-card);
+    color: var(--ash);
+    cursor: not-allowed;
+}
+
 .select-button:active,
 .empty-state button:active {
     border-color: var(--accent-active);
@@ -713,6 +772,10 @@ select:focus {
 }
 
 .pagination button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     min-height: 36px;
     border: 1px solid var(--hairline);
     padding: 0 10px;
@@ -723,6 +786,18 @@ select:focus {
         border-color 140ms ease,
         background-color 140ms ease,
         transform 120ms ease-out;
+}
+
+.pagination-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.pagination button img {
+    width: 15px;
+    height: 15px;
 }
 
 .pagination button:hover:not(:disabled) {

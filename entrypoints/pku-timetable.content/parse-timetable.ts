@@ -21,6 +21,48 @@ export function findElectedResultsTable(): HTMLTableElement | null {
     )
 }
 
+export function findSupplementElectedTable(): HTMLTableElement | null {
+    const tables = Array.from(document.querySelectorAll<HTMLTableElement>('table.datagrid'))
+    return (
+        tables.find(table => {
+            const header = Array.from(table.rows).find(row => row.querySelector('th'))
+            if (!header) return false
+            const headers = Array.from(header.cells).map(cell => normalize(cell.textContent))
+            return (
+                headers.includes('课程号') &&
+                headers.includes('课程名') &&
+                headers.includes('上课/考试信息') &&
+                headers.includes('选课状态')
+            )
+        }) ?? null
+    )
+}
+
+export function parseSupplementElectedLessons(
+    table: HTMLTableElement | null = findSupplementElectedTable(),
+): LessonSlot[] | null {
+    if (!table) return null
+    const header = Array.from(table.rows).find(row => row.querySelector('th'))
+    if (!header) return null
+
+    const headers = Array.from(header.cells).map(cell => normalize(cell.textContent))
+    const statusIndex = headers.indexOf('选课状态')
+    if (statusIndex < 0) return null
+
+    const rows = Array.from(table.querySelectorAll<HTMLTableRowElement>(COURSE_ROW_SELECTOR))
+    const parsedRows = rows.map(row => ({
+        section: parseCourseRow(row),
+        status: normalize(row.cells[statusIndex]?.textContent),
+    }))
+    if (parsedRows.some(({ section, status }) => !section || status !== '已选上')) return null
+
+    return parsedRows.flatMap(({ section }) =>
+        section
+            ? section.lessons.map(lesson => ({ ...lesson, courseName: section.courseName }))
+            : [],
+    )
+}
+
 export function parseElectedLessons(
     table: HTMLTableElement | null = findElectedCourseTable(),
 ): LessonSlot[] {

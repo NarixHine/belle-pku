@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { TimetablePreview } from './timetable-preview'
 import type {
@@ -9,6 +9,10 @@ import type {
     SelectableCourse,
 } from './types'
 import { createPreviewModel } from './visual-model'
+import homeIcon from '@phosphor-icons/core/assets/regular/house.svg'
+import previousPageIcon from '@phosphor-icons/core/assets/regular/arrow-left.svg'
+import nextPageIcon from '@phosphor-icons/core/assets/regular/arrow-right.svg'
+import lastPageIcon from '@phosphor-icons/core/assets/regular/caret-double-right.svg'
 
 interface CourseListProps {
     courses: SelectableCourse[]
@@ -21,6 +25,9 @@ interface CourseListProps {
     electedHint: string
     heading?: string
     viewStateKey: string
+    requiresCaptcha?: boolean
+    showHomeButton?: boolean
+    electedHeading?: string
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
@@ -106,6 +113,9 @@ export function CourseList({
     electedHint,
     heading = '本学期可选课程',
     viewStateKey,
+    requiresCaptcha = false,
+    showHomeButton = false,
+    electedHeading = '已选列表',
 }: CourseListProps) {
     const [viewState, setViewState] = useState<CourseViewState>(() => ({
         ...defaultCourseViewState,
@@ -234,6 +244,8 @@ export function CourseList({
                         <CourseCard
                             course={course}
                             existingLessons={existingLessons}
+                            requiresCaptcha={requiresCaptcha}
+                            showHomeButton={showHomeButton}
                             key={course.id}
                         />
                     ))}
@@ -252,8 +264,8 @@ export function CourseList({
                     </button>
                 </section>
             )}
-            {pagination && pagination.totalPages > 1 ? (
-                <Pagination pagination={pagination} />
+            {pagination ? (
+                <Pagination pagination={pagination} showHomeButton={showHomeButton} />
             ) : null}
             {electedCourses.length > 0 ? (
                 <ElectedCourseList
@@ -261,6 +273,7 @@ export function CourseList({
                     summary={electedSummary}
                     pagination={electedPagination}
                     hint={electedHint}
+                    heading={electedHeading}
                 />
             ) : null}
         </main>
@@ -272,17 +285,19 @@ function ElectedCourseList({
     summary,
     pagination,
     hint,
+    heading,
 }: {
     courses: ElectedCourse[]
     summary: ElectedSummary | null
     pagination: CoursePagination | null
     hint: string
+    heading: string
 }) {
     return (
         <section class='elected-section' aria-labelledby='elected-heading'>
             <header class='elected-section__header'>
                 <div class='heading-with-hint'>
-                    <h2 id='elected-heading'>已选列表</h2>
+                    <h2 id='elected-heading'>{heading}</h2>
                     {hint ? <p class='section-hint'>{hint}</p> : null}
                 </div>
                 <div class='elected-section__summary'>
@@ -431,14 +446,58 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
 function CourseCard({
     course,
     existingLessons,
+    requiresCaptcha,
+    showHomeButton,
 }: {
     course: SelectableCourse
     existingLessons: LessonSlot[]
+    requiresCaptcha: boolean
+    showHomeButton: boolean
 }) {
     const [willingness, setWillingness] = useState(course.willingness)
+    const [captcha, setCaptcha] = useState((course.captchaInputs[0]?.value ?? '').toLowerCase())
+
+    useEffect(() => {
+        const syncCaptcha = (event: Event) => {
+            const value = (event as CustomEvent<string>).detail
+            if (typeof value === 'string') setCaptcha(value)
+        }
+        const syncFromPortalInput = (event: Event) => {
+            const input = event.currentTarget as HTMLInputElement
+            const value = input.value.toLowerCase()
+            course.captchaInputs.forEach(otherInput => {
+                otherInput.value = value
+            })
+            window.dispatchEvent(new CustomEvent('belle-pku-captcha', { detail: value }))
+        }
+        window.addEventListener('belle-pku-captcha', syncCaptcha)
+        course.captchaInputs.forEach(input => {
+            input.addEventListener('input', syncFromPortalInput)
+            input.addEventListener('change', syncFromPortalInput)
+        })
+        return () => {
+            window.removeEventListener('belle-pku-captcha', syncCaptcha)
+            course.captchaInputs.forEach(input => {
+                input.removeEventListener('input', syncFromPortalInput)
+                input.removeEventListener('change', syncFromPortalInput)
+            })
+        }
+    }, [])
     const demand = course.capacity ? (course.selected ?? 0) / course.capacity : 0
-    const progress = Math.min(100, demand * 100)
-    const overCapacity = demand >= 1
+    const vacancies =
+        course.capacity !== null && course.selected !== null
+            ? Math.max(0, course.capacity - course.selected)
+            : null
+    const waitlisted = course.waitlisted
+    const waitlistOverflow =
+        requiresCaptcha && vacancies !== null && waitlisted !== null && waitlisted > vacancies
+    const progress = Math.min(
+        100,
+        ((requiresCaptcha && vacancies !== null ? vacancies : (course.selected ?? 0)) /
+            Math.max(1, course.capacity ?? 0)) *
+            100,
+    )
+    const overCapacity = !requiresCaptcha && demand >= 1
     const badges = [
         ...course.teacher
             .split(',')
@@ -456,6 +515,18 @@ function CourseCard({
         course.willingnessInput.value = value
         course.willingnessInput.dispatchEvent(new Event('input', { bubbles: true }))
         course.willingnessInput.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    const updateCaptcha = (value: string) => {
+        const normalizedValue = value.toLowerCase()
+        setCaptcha(normalizedValue)
+        course.captchaInputs.forEach(input => {
+            if (input.value === normalizedValue) return
+            input.value = normalizedValue
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+            input.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        window.dispatchEvent(new CustomEvent('belle-pku-captcha', { detail: normalizedValue }))
     }
 
     return (
@@ -514,31 +585,57 @@ function CourseCard({
                         ) : null}
                         {course.capacity !== null && course.selected !== null ? (
                             <div class='metric metric--capacity'>
-                                <span class='metric__label'>已选 / 限数</span>
-                                <strong class={overCapacity ? 'is-danger' : ''}>
-                                    <span>{course.selected}</span>
-                                    <small>
-                                        <span>/</span>
-                                        {course.capacity}
-                                    </small>
+                                <span
+                                    class={`metric__label${waitlistOverflow ? ' is-danger' : ''}`}
+                                >
+                                    {waitlistOverflow
+                                        ? '溢出：候补 / 空缺'
+                                        : requiresCaptcha
+                                          ? '候补 / 空缺'
+                                          : '已选 / 限数'}
+                                </span>
+                                <strong class={overCapacity || waitlistOverflow ? 'is-danger' : ''}>
+                                    {requiresCaptcha && vacancies !== null ? (
+                                        <>
+                                            <span>{waitlisted ?? '-'}</span>
+                                            <small>
+                                                <span>/</span>
+                                                {vacancies}
+                                            </small>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>{course.selected}</span>
+                                            <small>
+                                                <span>/</span>
+                                                {course.capacity}
+                                            </small>
+                                        </>
+                                    )}
                                 </strong>
                                 <div
                                     class='progress'
                                     role='progressbar'
-                                    aria-label='已选人数占限数比例'
+                                    aria-label={
+                                        requiresCaptcha ? '候补人数 / 空缺数' : '已选人数占限数比例'
+                                    }
                                     aria-valuemin={0}
                                     aria-valuemax={course.capacity}
                                     aria-valuenow={course.selected}
                                 >
                                     <span
-                                        class={overCapacity ? 'is-over' : ''}
+                                        class={overCapacity || waitlistOverflow ? 'is-over' : ''}
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
                                 <span class='metric__hint'>
-                                    {overCapacity
-                                        ? `超出容量 ${course.selected - course.capacity} 人`
-                                        : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
+                                    {waitlistOverflow
+                                        ? `溢出 ${waitlisted - vacancies} 人`
+                                        : requiresCaptcha && vacancies !== null
+                                          ? `空缺 ${vacancies} 人`
+                                          : overCapacity
+                                            ? `超出容量 ${course.selected - course.capacity} 人`
+                                            : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
                                 </span>
                             </div>
                         ) : null}
@@ -575,17 +672,42 @@ function CourseCard({
                     <button
                         type='button'
                         class='select-button'
+                        disabled={requiresCaptcha && !captcha.trim()}
                         onClick={() => course.actionLink.click()}
                     >
                         {course.actionLabel}
                     </button>
+                    {requiresCaptcha ? (
+                        <label class='captcha-control'>
+                            <span>验证码</span>
+                            <span class='captcha-control__fields'>
+                                <input
+                                    type='text'
+                                    value={captcha}
+                                    maxLength={5}
+                                    style={{ textTransform: 'lowercase' }}
+                                    onInput={event => updateCaptcha(event.currentTarget.value)}
+                                    aria-label='补选验证码'
+                                />
+                                {course.captchaImageSrc ? (
+                                    <img src={course.captchaImageSrc} alt='验证码图片' />
+                                ) : null}
+                            </span>
+                        </label>
+                    ) : null}
                 </div>
             </div>
         </article>
     )
 }
 
-function Pagination({ pagination }: { pagination: CoursePagination }) {
+function Pagination({
+    pagination,
+    showHomeButton = false,
+}: {
+    pagination: CoursePagination
+    showHomeButton?: boolean
+}) {
     const goToPage = (page: number) => {
         if (!pagination.pageSelect) return
         const option = pagination.pageSelect.options.item(page - 1)
@@ -600,11 +722,23 @@ function Pagination({ pagination }: { pagination: CoursePagination }) {
                 第 {pagination.currentPage} / {pagination.totalPages} 页
             </span>
             <div>
+                {showHomeButton ? (
+                    <button
+                        type='button'
+                        class='pagination-button'
+                        disabled={!pagination.firstLink}
+                        onClick={() => pagination.firstLink?.click()}
+                    >
+                        <img src={homeIcon} alt='' aria-hidden='true' />
+                        首页
+                    </button>
+                ) : null}
                 <button
                     type='button'
                     disabled={pagination.currentPage <= 1}
                     onClick={() => goToPage(pagination.currentPage - 1)}
                 >
+                    <img src={previousPageIcon} alt='' aria-hidden='true' />
                     上一页
                 </button>
                 <button
@@ -612,6 +746,7 @@ function Pagination({ pagination }: { pagination: CoursePagination }) {
                     disabled={!pagination.nextLink}
                     onClick={() => pagination.nextLink?.click()}
                 >
+                    <img src={nextPageIcon} alt='' aria-hidden='true' />
                     下一页
                 </button>
                 <button
@@ -619,6 +754,7 @@ function Pagination({ pagination }: { pagination: CoursePagination }) {
                     disabled={!pagination.lastLink}
                     onClick={() => pagination.lastLink?.click()}
                 >
+                    <img src={lastPageIcon} alt='' aria-hidden='true' />
                     末页
                 </button>
             </div>

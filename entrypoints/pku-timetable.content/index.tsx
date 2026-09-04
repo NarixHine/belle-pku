@@ -14,10 +14,12 @@ import {
 } from './parse-course-table'
 import {
     findElectedResultsTable,
+    findSupplementElectedTable,
     parseElectedLessons,
     parseElectedResultsLessons,
+    parseSupplementElectedLessons,
 } from './parse-timetable'
-import { isElectiveResultsUrl, isElectiveWorkUrl, isSupportedUrl } from './url'
+import { isElectiveResultsUrl, isElectiveWorkUrl, isSupplementUrl, isSupportedUrl } from './url'
 import './styles.css'
 
 const HOST_NAME = 'belle-pku-timetable'
@@ -67,7 +69,8 @@ export default defineContentScript({
                             refreshElectedLessonsCache()
                             const table = findActionableCourseTable()
                             if (!table) return
-                            const electedLessonTable = findElectedCourseTable()
+                            const electedLessonTable =
+                                findElectedCourseTable() ?? findSupplementElectedTable()
                             const existingLessons = electedLessonTable
                                 ? parseElectedLessons(electedLessonTable)
                                 : readElectedLessonsCache()
@@ -81,32 +84,62 @@ export default defineContentScript({
                             table.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                             table.style.setProperty('display', 'none', 'important')
                             const isPlanQuery = courses[0]?.actionLabel === '加入选课计划'
+                            const isSupplement = courses[0]?.actionLabel === '补选'
+                            const supplementElectedTable = isSupplement
+                                ? findSupplementElectedTable()
+                                : null
                             const selectableHint = isPlanQuery
                                 ? ''
                                 : hidePortalHint(
-                                      '只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程',
+                                      isSupplement
+                                          ? '只有点击“补选”后加入“已选上列表”的课程才为选上的课程'
+                                          : '只有点击“预选”后加入"已选列表"的课程才为预选期间选择的课程',
                                   )
-                            const electedTable = isPlanQuery ? null : findElectedCourseTable()
+                            const electedTable = isPlanQuery
+                                ? null
+                                : isSupplement
+                                  ? supplementElectedTable
+                                  : findElectedCourseTable()
                             const electedCourses = parseElectedCourses(electedTable)
                             const electedHint = isPlanQuery
                                 ? ''
                                 : hidePortalHint(
-                                      '"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定',
+                                      isSupplement
+                                          ? '"已选上列表"中列出的是本学期已经选上的课程'
+                                          : '"已选列表"中列出的是预选期间选择的课程，是否选上待抽签之后才能确定',
                                   )
-                            if (!isPlanQuery) {
+                            if (!isPlanQuery && !isSupplement) {
                                 hidePortalRow('选课计划中本学期可选列表')
                                 hidePortalRow('已选列表')
                                 hidePortalRow(
                                     '注：上课时间标注红色，表明所有选课（主辅修）上课时间或考试时间有冲突。',
                                 )
                             }
+                            if (isSupplement) {
+                                hidePortalRow('选课计划中本学期可选列表')
+                                hidePortalRow('已选上列表')
+                            }
                             if (electedTable && electedCourses.length > 0) {
                                 electedTable.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                                 electedTable.style.setProperty('display', 'none', 'important')
                             }
+                            if (supplementElectedTable) {
+                                supplementElectedTable.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
+                                supplementElectedTable.style.setProperty(
+                                    'display',
+                                    'none',
+                                    'important',
+                                )
+                            }
                             render(
                                 <CourseList
-                                    key={isPlanQuery ? 'course-plan' : 'selectable'}
+                                    key={
+                                        isPlanQuery
+                                            ? 'course-plan'
+                                            : isSupplement
+                                              ? 'supplement'
+                                              : 'selectable'
+                                    }
                                     courses={courses}
                                     pagination={parseCoursePagination(table)}
                                     existingLessons={existingLessons}
@@ -117,8 +150,23 @@ export default defineContentScript({
                                     }
                                     selectableHint={selectableHint}
                                     electedHint={electedHint}
-                                    heading={isPlanQuery ? '加入选课计划' : '本学期可选课程'}
-                                    viewStateKey={isPlanQuery ? 'course-plan' : 'selectable'}
+                                    heading={
+                                        isPlanQuery
+                                            ? '加入选课计划'
+                                            : isSupplement
+                                              ? '补退选'
+                                              : '本学期可选课程'
+                                    }
+                                    requiresCaptcha={isSupplement}
+                                    showHomeButton
+                                    electedHeading={isSupplement ? '已选上列表' : '已选列表'}
+                                    viewStateKey={
+                                        isPlanQuery
+                                            ? 'course-plan'
+                                            : isSupplement
+                                              ? 'supplement'
+                                              : 'selectable'
+                                    }
                                 />,
                                 container,
                             )
@@ -199,12 +247,22 @@ function refreshElectedLessonsCache() {
         }
         return
     }
-    if (!isElectiveWorkUrl()) return
-    const table = findElectedCourseTable()
-    if (!table) return
-    const lessons = parseElectedLessons(table)
-    writeElectedLessonsCache(lessons)
-    debugLog('Existing lessons cache refreshed', { count: lessons.length })
+    if (isElectiveWorkUrl()) {
+        const table = findElectedCourseTable()
+        if (!table) return
+        const lessons = parseElectedLessons(table)
+        writeElectedLessonsCache(lessons)
+        debugLog('Existing lessons cache refreshed', { count: lessons.length })
+        return
+    }
+    if (isSupplementUrl()) {
+        const table = findSupplementElectedTable()
+        if (!table) return
+        const lessons = parseSupplementElectedLessons(table)
+        if (!lessons) return
+        writeElectedLessonsCache(lessons)
+        debugLog('Existing lessons cache refreshed from supplement', { count: lessons.length })
+    }
 }
 
 function restoreTables() {

@@ -31,12 +31,16 @@ export interface SelectableCourse extends CourseSection {
     pnp: string
     capacity: number | null
     selected: number | null
+    waitlisted: number | null
     willingness: string
     extraFields: Array<{ label: string; value: string }>
     scheduleLines: string[]
     detailUrl: string
     actionLink: HTMLAnchorElement
     actionLabel: string
+    requiresCaptcha: boolean
+    captchaInputs: HTMLInputElement[]
+    captchaImageSrc: string
     willingnessInput: HTMLInputElement | null
     willingnessMin: string
     willingnessMax: string
@@ -70,6 +74,7 @@ export interface ElectedSummary {
 export interface CoursePagination {
     currentPage: number
     totalPages: number
+    firstLink: HTMLAnchorElement | null
     nextLink: HTMLAnchorElement | null
     lastLink: HTMLAnchorElement | null
     pageSelect: HTMLSelectElement | null
