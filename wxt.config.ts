@@ -11,6 +11,9 @@ export default defineConfig({
                 data_collection_permissions: {
                     required: ['none'],
                 },
+                // Firefox reads this from the installed build; changing it later
+                // does not re-point existing installs. Keep stable.
+                update_url: 'https://belle-pku-assets.time.florist/updates.json',
             },
         },
     },

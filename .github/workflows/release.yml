@@ -52,6 +52,43 @@ jobs:
                   cp "$chrome" release-packages/
                   cp "$firefox" release-packages/
 
+            # Tag-only: lint and sign the Firefox build with AMO (unlisted channel),
+            # then publish the signed XPI + updates.json to R2 for auto-updates.
+            - name: Lint Firefox package
+              if: startsWith(github.ref, 'refs/tags/v')
+              run: bunx web-ext lint --source-dir .output/firefox-mv2 --self-hosted
+
+            - name: Sign Firefox extension with AMO (unlisted)
+              if: startsWith(github.ref, 'refs/tags/v')
+              env:
+                  AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+                  AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+              run: |
+                  bunx web-ext sign \
+                      --source-dir .output/firefox-mv2 \
+                      --artifacts-dir release-packages \
+                      --channel unlisted \
+                      --api-key "$AMO_JWT_ISSUER" \
+                      --api-secret "$AMO_JWT_SECRET"
+                  # web-ext writes release-packages/<name>-<version>.xpi (possibly signed
+                  # with a randomized filename); rename deterministically for publishing.
+                  version="$(node -p "require('./package.json').version")"
+                  xpi="$(ls release-packages/*.xpi | head -n 1)"
+                  test -f "$xpi"
+                  mv "$xpi" "release-packages/belle-pku-${version}.xpi"
+                  test -f "release-packages/belle-pku-${version}.xpi"
+
+            - name: Publish signed XPI and update manifest to R2
+              if: startsWith(github.ref, 'refs/tags/v')
+              env:
+                  R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+                  R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+                  R2_S3_ENDPOINT: ${{ secrets.R2_S3_ENDPOINT }}
+                  R2_BUCKET: ${{ secrets.R2_BUCKET }}
+                  # Optional overrides; defaults live in the script.
+                  R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
+              run: node scripts/publish-firefox-updates.mjs
+
             - name: Upload extension packages
               uses: actions/upload-artifact@v4
               with:
@@ -59,6 +96,7 @@ jobs:
                   path: |
                       release-packages/*-chrome.zip
                       release-packages/*-firefox.zip
+                      release-packages/*.xpi
                   if-no-files-found: error
                   retention-days: 14
 
@@ -83,11 +121,11 @@ jobs:
               run: |
                   shopt -s nullglob
                   chrome=(release-packages/*-chrome.zip)
-                  firefox=(release-packages/*-firefox.zip)
+                  firefox_signed=(release-packages/*.xpi)
                   test "${#chrome[@]}" -eq 1
-                  test "${#firefox[@]}" -eq 1
+                  test "${#firefox_signed[@]}" -eq 1
                   gh release create "$GITHUB_REF_NAME" \
                       --verify-tag \
                       --generate-notes \
                       "${chrome[0]}" \
-                      "${firefox[0]}"
+                      "${firefox_signed[0]}"
