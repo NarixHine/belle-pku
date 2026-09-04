@@ -7,7 +7,6 @@
       "dependencies": {
         "@floating-ui/dom": "^1.8.0",
         "@fontsource/dm-mono": "^5.3.0",
-        "@fontsource/noto-sans-sc": "^5.3.0",
         "@kamod-ch/ui": "^1.1.0",
         "preact": "^10.29.8",
       },
@@ -72,7 +71,6 @@
 
     "@fontsource/dm-mono": ["@fontsource/dm-mono@5.3.0", "", {}, "sha512-OINjI8C1S/wpchhQxl7njZdMn4+hnDCpQ4YtvvOpKNARo+0J8O1x1IcrChxNjHOhfVv1by8C/FQoy3hXK+C1Ug=="],
 
-    "@fontsource/noto-sans-sc": ["@fontsource/noto-sans-sc@5.3.0", "", {}, "sha512-HeqIlGm0+ohOKxZLuHj1qW6r6avHH0OWdKERAcSDI0RQ+MXrteuLKA+M+5eOA8rYy0MFvOR5AT0fQo2rUkye0Q=="],
 
     "@fregante/relaxed-json": ["@fregante/relaxed-json@2.0.0", "", {}, "sha512-PyUXQWB42s4jBli435TDiYuVsadwRHnMc27YaLouINktvTWsL3FcKrRMGawTayFk46X+n5bE23RjUTWQwrukWw=="],
 

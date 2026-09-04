@@ -27,7 +27,9 @@ import process from 'node:process'
 
 const REQUIRED_ENV = ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_S3_ENDPOINT', 'R2_BUCKET']
 
-const R2_PUBLIC_BASE = (process.env.R2_PUBLIC_BASE ?? 'https://belle-pku-assets.time.florist').replace(/\/$/, '')
+const R2_PUBLIC_BASE = (
+    process.env.R2_PUBLIC_BASE ?? 'https://belle-pku-assets.time.florist'
+).replace(/\/$/, '')
 const ADDON_ID = process.env.ADDON_ID ?? 'belle-pku-timetable@narixhine'
 const MAX_ATTEMPTS = 4
 const ATTEMPT_DELAY_MS = 3000
@@ -46,7 +48,7 @@ async function retry(label, fn) {
             lastError = error
             console.warn(`  attempt ${attempt}/${MAX_ATTEMPTS} failed: ${error.message}`)
             if (attempt < MAX_ATTEMPTS) {
-                await new Promise((resolve) => setTimeout(resolve, ATTEMPT_DELAY_MS * attempt))
+                await new Promise(resolve => setTimeout(resolve, ATTEMPT_DELAY_MS * attempt))
             }
         }
     }
@@ -54,7 +56,7 @@ async function retry(label, fn) {
 }
 
 function assertEnv() {
-    const missing = REQUIRED_ENV.filter((key) => !process.env[key])
+    const missing = REQUIRED_ENV.filter(key => !process.env[key])
     if (missing.length > 0) {
         fail(`missing required environment variables: ${missing.join(', ')}`)
     }
@@ -75,7 +77,9 @@ async function s3Request(method, key, { body, contentType } = {}) {
     const now = new Date()
     const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '')
     const dateStamp = amzDate.slice(0, 8)
-    const payloadHash = createHash('sha256').update(body ?? '').digest('hex')
+    const payloadHash = createHash('sha256')
+        .update(body ?? '')
+        .digest('hex')
 
     const headers = {
         host: url.host,
@@ -89,20 +93,38 @@ async function s3Request(method, key, { body, contentType } = {}) {
     const signedHeaders = Object.keys(headers).sort().join(';')
     const canonicalHeaders = Object.keys(headers)
         .sort()
-        .map((name) => `${name}:${headers[name]}\n`)
+        .map(name => `${name}:${headers[name]}\n`)
         .join('')
-    const canonicalRequest = [method, url.pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n')
+    const canonicalRequest = [
+        method,
+        url.pathname,
+        '',
+        canonicalHeaders,
+        signedHeaders,
+        payloadHash,
+    ].join('\n')
     const scope = `${dateStamp}/${region}/s3/aws4_request`
-    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, createHash('sha256').update(canonicalRequest).digest('hex')].join('\n')
+    const stringToSign = [
+        'AWS4-HMAC-SHA256',
+        amzDate,
+        scope,
+        createHash('sha256').update(canonicalRequest).digest('hex'),
+    ].join('\n')
 
     // AWS SigV4: every derivation step is HMAC-SHA256 (not a plain hash).
     const hmacSha256 = (key, data) => createHmac('sha256', key).update(data).digest()
-    const signingKey = hmacSha256(hmacSha256(hmacSha256(hmacSha256(`AWS4${secretKey}`, dateStamp), region), 's3'), 'aws4_request')
+    const signingKey = hmacSha256(
+        hmacSha256(hmacSha256(hmacSha256(`AWS4${secretKey}`, dateStamp), region), 's3'),
+        'aws4_request',
+    )
     const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex')
 
     const response = await fetch(url, {
         method,
-        headers: { ...headers, authorization: `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}` },
+        headers: {
+            ...headers,
+            authorization: `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+        },
         body: method === 'GET' ? undefined : body,
     })
     return response
@@ -149,8 +171,10 @@ function sha256Hex(buffer) {
 }
 
 function parseVersion(version) {
-    const parts = String(version).split('.').map((part) => Number.parseInt(part, 10))
-    if (parts.some((part) => !Number.isInteger(part) || part < 0)) {
+    const parts = String(version)
+        .split('.')
+        .map(part => Number.parseInt(part, 10))
+    if (parts.some(part => !Number.isInteger(part) || part < 0)) {
         throw new Error(`invalid version: ${version}`)
     }
     return parts
@@ -177,13 +201,17 @@ async function findSignedXpi(version) {
     } catch {
         fail(`missing directory: ${directory}/ (run the Firefox build/sign steps first)`)
     }
-    const exact = entries.filter((name) => name === `belle-pku-${version}.xpi`)
+    const exact = entries.filter(name => name === `belle-pku-${version}.xpi`)
     if (exact.length === 1) {
         return path.join(directory, exact[0])
     }
-    const candidates = entries.filter((name) => name.startsWith('belle-pku-') && name.endsWith('.xpi'))
+    const candidates = entries.filter(
+        name => name.startsWith('belle-pku-') && name.endsWith('.xpi'),
+    )
     if (candidates.length !== 1) {
-        fail(`expected exactly one signed XPI in ${directory}/, found: ${candidates.join(', ') || 'none'}`)
+        fail(
+            `expected exactly one signed XPI in ${directory}/, found: ${candidates.join(', ') || 'none'}`,
+        )
     }
     return path.join(directory, candidates[0])
 }
@@ -235,7 +263,9 @@ async function main() {
 
     for (const entry of updates) {
         if (compareVersions(version, entry.version) <= 0) {
-            fail(`version regression: ${version} is not greater than already-published ${entry.version}`)
+            fail(
+                `version regression: ${version} is not greater than already-published ${entry.version}`,
+            )
         }
     }
 
@@ -258,8 +288,14 @@ async function main() {
         fail(`post-upload verification failed for ${xpiKey}`)
     }
     const published = JSON.parse(verifyManifest.toString('utf8'))
-    const publishedEntry = published?.addons?.[ADDON_ID]?.updates?.find((entry) => entry.version === version)
-    if (!publishedEntry || publishedEntry.update_link !== xpiUrl || publishedEntry.update_hash !== `sha256:${hash}`) {
+    const publishedEntry = published?.addons?.[ADDON_ID]?.updates?.find(
+        entry => entry.version === version,
+    )
+    if (
+        !publishedEntry ||
+        publishedEntry.update_link !== xpiUrl ||
+        publishedEntry.update_hash !== `sha256:${hash}`
+    ) {
         fail(`post-upload verification failed for ${manifestKey}: entry missing or incorrect`)
     }
 
@@ -268,4 +304,4 @@ async function main() {
     console.log(`✔ published ${version} to R2`)
 }
 
-main().catch((error) => fail(error?.stack ?? String(error)))
+main().catch(error => fail(error?.stack ?? String(error)))

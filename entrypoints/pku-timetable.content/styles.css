@@ -1,14 +1,31 @@
 @import '@fontsource/dm-mono/latin-400.css';
-@import '@fontsource/dm-mono/latin-500.css';
-@import '@fontsource/noto-sans-sc/chinese-simplified-400.css';
-@import '@fontsource/noto-sans-sc/chinese-simplified-500.css';
-@import '@fontsource/noto-sans-sc/chinese-simplified-700.css';
+
+@font-face {
+    font-family: 'Youhei';
+    src: url('./youhei.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'Youhei';
+    src: url('./youhei.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 600;
+}
 
 @font-face {
     font-family: 'SongKe';
     src: url('./songke.woff2') format('woff2');
     font-display: swap;
-    font-weight: 400 700;
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'SongKe';
+    src: url('./songke.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 600;
 }
 
 :host {
@@ -29,7 +46,7 @@
     display: block;
     color: var(--ink);
     font-family:
-        'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
+        'DM Mono', 'Youhei', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
         'Liberation Mono', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
@@ -38,7 +55,7 @@
 :host,
 :host * {
     font-family:
-        'DM Mono', 'Noto Sans SC', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
+        'DM Mono', 'Youhei', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas,
         'Liberation Mono', 'Courier New', monospace;
 }
 
@@ -84,9 +101,9 @@ p {
 
 .course-browser h1 {
     color: var(--ink);
-    font-family: 'SongKe', 'Noto Sans SC', sans-serif;
+    font-family: 'SongKe', 'Youhei', sans-serif;
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0;
     line-height: 1.25;
 }
@@ -209,9 +226,9 @@ select:focus {
 
 .elected-section__header h2 {
     color: var(--ink);
-    font-family: 'SongKe', 'Noto Sans SC', sans-serif;
+    font-family: 'SongKe', 'Youhei', sans-serif;
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .elected-section__header span,
@@ -231,7 +248,7 @@ select:focus {
 .elected-section__summary strong {
     color: var(--ink);
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .course-card {
@@ -263,11 +280,12 @@ select:focus {
 .course-identity h2 {
     margin-top: 4px;
     color: var(--ink);
-    font-family: 'SongKe', 'Noto Sans SC', sans-serif;
+    font-family: 'SongKe', 'Youhei', sans-serif;
     font-size: 24px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0;
     line-height: 1.4;
+    text-wrap: balance;
 }
 
 .course-identity h2 a {
@@ -310,7 +328,7 @@ select:focus {
 .badge--danger {
     background: var(--danger-soft);
     color: var(--danger);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .primary-metrics {
@@ -337,7 +355,7 @@ select:focus {
     gap: 0.2em;
     color: var(--ink);
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.25;
     font-variant-numeric: tabular-nums;
 }
@@ -408,7 +426,7 @@ select:focus {
     place-items: center;
     color: var(--muted);
     font-size: 9px;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .schedule__corner,
@@ -497,7 +515,7 @@ select:focus {
 .lesson-block__name {
     display: block;
     overflow: hidden;
-    font-weight: 700;
+    font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -512,7 +530,7 @@ select:focus {
     background: rgba(255, 247, 245, 0.88);
     color: var(--danger);
     font-size: 8px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.15;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -603,7 +621,7 @@ select:focus {
     padding: 0 16px;
     background: var(--accent);
     color: var(--canvas);
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition:
         background-color 140ms ease,
@@ -624,7 +642,7 @@ select:focus {
     padding: 0 16px;
     background: var(--canvas);
     color: var(--ink);
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition:
         border-color 140ms ease,

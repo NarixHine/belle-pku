@@ -12,8 +12,12 @@ import {
     parseElectedSummary,
     parseActionableCourses,
 } from './parse-course-table'
-import { parseElectedLessons } from './parse-timetable'
-import { isElectiveWorkUrl, isSupportedUrl } from './url'
+import {
+    findElectedResultsTable,
+    parseElectedLessons,
+    parseElectedResultsLessons,
+} from './parse-timetable'
+import { isElectiveResultsUrl, isElectiveWorkUrl, isSupportedUrl } from './url'
 import './styles.css'
 
 const HOST_NAME = 'belle-pku-timetable'
@@ -187,6 +191,14 @@ export default defineContentScript({
 })
 
 function refreshElectedLessonsCache() {
+    if (isElectiveResultsUrl()) {
+        const lessons = parseElectedResultsLessons(findElectedResultsTable())
+        if (lessons) {
+            writeElectedLessonsCache(lessons)
+            debugLog('Existing lessons cache refreshed from results', { count: lessons.length })
+        }
+        return
+    }
     if (!isElectiveWorkUrl()) return
     const table = findElectedCourseTable()
     if (!table) return

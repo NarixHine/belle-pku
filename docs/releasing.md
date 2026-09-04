@@ -63,6 +63,6 @@ Firefox's update checker fetches cross-origin from the extension, so the bucket 
 ## Notes
 
 - **Unlisted** means the add-on is signed and installable but has no public AMO listing. Mozilla review still applies to unlisted submissions.
-- **Auto-update bootstrap:** Firefox reads `update_url` from the *installed* build. Builds before the `update_url` change cannot auto-update; installs made from the first release carrying it onward will.
+- **Auto-update bootstrap:** Firefox reads `update_url` from the _installed_ build. Builds before the `update_url` change cannot auto-update; installs made from the first release carrying it onward will.
 - Never overwrite a shipped XPI object in R2; versions are append-only. To yank a bad build, remove its entry from `updates.json` (and contact Mozilla about the AMO version if needed).
 - The unsigned `*-firefox.zip` and Chrome ZIP remain attached for diagnostics/Chromium users respectively; the Chrome build is unaffected by all of this (`browser_specific_settings` is ignored by Chromium).

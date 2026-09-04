@@ -54,7 +54,7 @@ const courseColumnAliases: Record<keyof CourseColumns, string[]> = {
     courseName: ['课程名'],
     teacher: ['教师'],
     sectionNumber: ['班号'],
-    info: ['上课/考试信息', '上课时间及教室'],
+    info: ['上课/考试信息', '上课时间及教室', '教室信息'],
 }
 
 const actionableColumnAliases: Record<keyof ActionableCourseColumns, string[]> = {
