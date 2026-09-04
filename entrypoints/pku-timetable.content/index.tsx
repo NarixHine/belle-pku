@@ -28,9 +28,12 @@ export default defineContentScript({
 
     main(ctx) {
         let removeRoute: (() => void) | null = null
-        let starting = false
+        let routeVersion = 0
+        let startingVersion: number | null = null
 
         const stopRoute = () => {
+            routeVersion += 1
+            startingVersion = null
             removeRoute?.()
             removeRoute = null
             document.querySelector(HOST_NAME)?.remove()
@@ -38,9 +41,16 @@ export default defineContentScript({
         }
 
         const startRoute = async () => {
+            const version = routeVersion
             refreshElectedLessonsCache()
-            if (starting || removeRoute || !isSupportedUrl() || !findActionableCourseTable()) return
-            starting = true
+            if (
+                startingVersion !== null ||
+                removeRoute ||
+                !isSupportedUrl() ||
+                !findActionableCourseTable()
+            )
+                return
+            startingVersion = version
             try {
                 const ui = await createShadowRootUi(ctx, {
                     name: HOST_NAME,
@@ -92,6 +102,7 @@ export default defineContentScript({
                             }
                             render(
                                 <CourseList
+                                    key={isPlanQuery ? 'course-plan' : 'selectable'}
                                     courses={courses}
                                     pagination={parseCoursePagination(table)}
                                     existingLessons={existingLessons}
@@ -103,6 +114,7 @@ export default defineContentScript({
                                     selectableHint={selectableHint}
                                     electedHint={electedHint}
                                     heading={isPlanQuery ? '加入选课计划' : '本学期可选课程'}
+                                    viewStateKey={isPlanQuery ? 'course-plan' : 'selectable'}
                                 />,
                                 container,
                             )
@@ -115,7 +127,10 @@ export default defineContentScript({
                     },
                 })
 
-                if (!isSupportedUrl() || ctx.isInvalid) return
+                if (version !== routeVersion || !isSupportedUrl() || ctx.isInvalid) {
+                    ui.remove()
+                    return
+                }
                 ui.mount()
                 ui.shadowHost.style.setProperty('display', 'block', 'important')
                 ui.shadowHost.style.setProperty('width', '100%', 'important')
@@ -156,7 +171,7 @@ export default defineContentScript({
                 document.querySelector(HOST_NAME)?.remove()
                 restoreTables()
             } finally {
-                starting = false
+                if (startingVersion === version) startingVersion = null
             }
         }
 

@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks'
+import { useRef, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
 import { TimetablePreview } from './timetable-preview'
 import type {
@@ -20,6 +20,7 @@ interface CourseListProps {
     selectableHint: string
     electedHint: string
     heading?: string
+    viewStateKey: string
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
@@ -33,11 +34,11 @@ interface CourseViewState {
     sort: SortKey
 }
 
-const COURSE_VIEW_STATE_KEY = `belle-pku-course-view:${location.pathname}`
+const COURSE_VIEW_STATE_PREFIX = 'belle-pku-course-view:'
 
-function readCourseViewState(): Partial<CourseViewState> {
+function readCourseViewState(viewStateKey: string): Partial<CourseViewState> {
     try {
-        const value = sessionStorage.getItem(COURSE_VIEW_STATE_KEY)
+        const value = sessionStorage.getItem(`${COURSE_VIEW_STATE_PREFIX}${viewStateKey}`)
         if (!value) return {}
         const parsed: unknown = JSON.parse(value)
         return parsed && typeof parsed === 'object' ? (parsed as Partial<CourseViewState>) : {}
@@ -46,17 +47,17 @@ function readCourseViewState(): Partial<CourseViewState> {
     }
 }
 
-function writeCourseViewState(update: Partial<CourseViewState>): void {
+function writeCourseViewState(viewStateKey: string, update: Partial<CourseViewState>): void {
     try {
         sessionStorage.setItem(
-            COURSE_VIEW_STATE_KEY,
+            `${COURSE_VIEW_STATE_PREFIX}${viewStateKey}`,
             JSON.stringify({
                 query: '',
                 category: '全部类别',
                 availability: '全部名额',
                 conflictFilter: 'all',
                 sort: 'default',
-                ...readCourseViewState(),
+                ...readCourseViewState(viewStateKey),
                 ...update,
             }),
         )
@@ -104,18 +105,26 @@ export function CourseList({
     selectableHint,
     electedHint,
     heading = '本学期可选课程',
+    viewStateKey,
 }: CourseListProps) {
     const [viewState, setViewState] = useState<CourseViewState>(() => ({
         ...defaultCourseViewState,
-        ...readCourseViewState(),
+        ...readCourseViewState(viewStateKey),
     }))
+    const viewStateRef = useRef(viewState)
     const { query, category, availability, conflictFilter, sort } = viewState
     const updateViewState = (update: Partial<CourseViewState>) => {
-        const next = { ...viewState, ...update }
+        const next = { ...viewStateRef.current, ...update }
+        viewStateRef.current = next
         setViewState(next)
-        writeCourseViewState(next)
+        writeCourseViewState(viewStateKey, next)
     }
-    const categories = Array.from(new Set(courses.map(course => course.category).filter(Boolean)))
+    const categories = Array.from(
+        new Set([
+            ...courses.map(course => course.category).filter(Boolean),
+            ...(category !== defaultCourseViewState.category ? [category] : []),
+        ]),
+    )
     const filteredCourses = (() => {
         const normalizedQuery = query.trim().toLocaleLowerCase()
         return courses
