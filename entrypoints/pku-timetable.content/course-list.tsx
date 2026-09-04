@@ -28,6 +28,7 @@ interface CourseListProps {
     requiresCaptcha?: boolean
     showHomeButton?: boolean
     electedHeading?: string
+    electedIsSupplement?: boolean
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
@@ -116,6 +117,7 @@ export function CourseList({
     requiresCaptcha = false,
     showHomeButton = false,
     electedHeading = '已选列表',
+    electedIsSupplement = false,
 }: CourseListProps) {
     const [viewState, setViewState] = useState<CourseViewState>(() => ({
         ...defaultCourseViewState,
@@ -274,6 +276,7 @@ export function CourseList({
                     pagination={electedPagination}
                     hint={electedHint}
                     heading={electedHeading}
+                    isSupplement={electedIsSupplement}
                 />
             ) : null}
         </main>
@@ -286,12 +289,14 @@ function ElectedCourseList({
     pagination,
     hint,
     heading,
+    isSupplement,
 }: {
     courses: ElectedCourse[]
     summary: ElectedSummary | null
     pagination: CoursePagination | null
     hint: string
     heading: string
+    isSupplement: boolean
 }) {
     return (
         <section class='elected-section' aria-labelledby='elected-heading'>
@@ -316,7 +321,11 @@ function ElectedCourseList({
             </header>
             <div class='course-list elected-list' aria-label='已选课程列表'>
                 {courses.map(course => (
-                    <ElectedCourseCard course={course} key={course.id} />
+                    <ElectedCourseCard
+                        course={course}
+                        isSupplement={isSupplement}
+                        key={course.id}
+                    />
                 ))}
             </div>
             {pagination && pagination.totalPages > 1 ? (
@@ -326,7 +335,13 @@ function ElectedCourseList({
     )
 }
 
-function ElectedCourseCard({ course }: { course: ElectedCourse }) {
+function ElectedCourseCard({
+    course,
+    isSupplement,
+}: {
+    course: ElectedCourse
+    isSupplement: boolean
+}) {
     const [willingness, setWillingness] = useState(course.willingness)
     const badges = [
         ...course.teacher
@@ -346,7 +361,11 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
     }
 
     return (
-        <article class='course-card elected-card'>
+        <article
+            class={`course-card elected-card${
+                course.selectionStatus.includes('候补') ? ' elected-card--waitlisted' : ''
+            }`}
+        >
             <div class='course-card__top'>
                 <div class='course-identity'>
                     <div class='course-kicker'>
@@ -383,12 +402,18 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
                         </strong>
                     </div>
                     <div class='metric metric--capacity'>
-                        <span class='metric__label'>已选 / 限数</span>
+                        <span class='metric__label'>
+                            {isSupplement ? '候补 / 空缺' : '已选 / 限数'}
+                        </span>
                         <strong>
-                            <span>{course.selected}</span>
+                            <span>
+                                {isSupplement ? (course.waitlisted ?? '-') : course.selected}
+                            </span>
                             <small>
                                 <span>/</span>
-                                {course.capacity}
+                                {isSupplement
+                                    ? Math.max(0, course.capacity - course.selected)
+                                    : course.capacity}
                             </small>
                         </strong>
                     </div>
@@ -585,16 +610,10 @@ function CourseCard({
                         ) : null}
                         {course.capacity !== null && course.selected !== null ? (
                             <div class='metric metric--capacity'>
-                                <span
-                                    class={`metric__label${waitlistOverflow ? ' is-danger' : ''}`}
-                                >
-                                    {waitlistOverflow
-                                        ? '溢出：候补 / 空缺'
-                                        : requiresCaptcha
-                                          ? '候补 / 空缺'
-                                          : '已选 / 限数'}
+                                <span class='metric__label'>
+                                    {requiresCaptcha ? '候补 / 空缺' : '已选 / 限数'}
                                 </span>
-                                <strong class={overCapacity || waitlistOverflow ? 'is-danger' : ''}>
+                                <strong class={overCapacity ? 'is-danger' : ''}>
                                     {requiresCaptcha && vacancies !== null ? (
                                         <>
                                             <span>{waitlisted ?? '-'}</span>
@@ -624,18 +643,16 @@ function CourseCard({
                                     aria-valuenow={course.selected}
                                 >
                                     <span
-                                        class={overCapacity || waitlistOverflow ? 'is-over' : ''}
+                                        class={overCapacity ? 'is-over' : ''}
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
                                 <span class='metric__hint'>
-                                    {waitlistOverflow
-                                        ? `溢出 ${waitlisted - vacancies} 人`
-                                        : requiresCaptcha && vacancies !== null
-                                          ? `空缺 ${vacancies} 人`
-                                          : overCapacity
-                                            ? `超出容量 ${course.selected - course.capacity} 人`
-                                            : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
+                                    {requiresCaptcha && vacancies !== null
+                                        ? `空缺 ${vacancies} 人`
+                                        : overCapacity
+                                          ? `超出容量 ${course.selected - course.capacity} 人`
+                                          : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
                                 </span>
                             </div>
                         ) : null}

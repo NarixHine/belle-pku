@@ -301,6 +301,7 @@ export function parseElectedCourses(
     const actionIndex = headers.findIndex(
         header => header.includes('取消') || header.includes('退选'),
     )
+    const statusIndex = headers.findIndex(header => header.includes('选课状态'))
     if (columns.courseCode < 0 || columns.courseName < 0 || columns.info < 0 || actionIndex < 0)
         return []
 
@@ -310,7 +311,7 @@ export function parseElectedCourses(
         const section = parseCourseRow(row)
         const cancelLink = row.querySelector<HTMLAnchorElement>('a[href*="cancelCourse.do"]')
         if (!section || !cancelLink) return []
-        const [capacity = 0, selected = 0] = cellText(row, columns.capacity)
+        const [capacity = 0, selected = 0, waitlisted = null] = cellText(row, columns.capacity)
             .split('/')
             .map(value => Number.parseInt(value.trim(), 10) || 0)
         const willingnessInput =
@@ -326,6 +327,7 @@ export function parseElectedCourses(
                 pnp: formatPnp(cellText(row, columns.pnp)),
                 capacity,
                 selected,
+                waitlisted,
                 willingness: willingnessInput?.value || cellText(row, columns.willingness),
                 scheduleLines: splitHtmlLines(section.infoCell),
                 detailUrl:
@@ -339,6 +341,7 @@ export function parseElectedCourses(
                     ).find(link => link.textContent?.trim() === '修改') ?? null,
                 willingnessMin: willingnessInput?.min || '',
                 willingnessMax: willingnessInput?.max || '',
+                selectionStatus: statusIndex >= 0 ? cellText(row, statusIndex) : '已选上',
             },
         ]
     })

@@ -56,6 +56,7 @@ export interface ElectedCourse extends CourseSection {
     pnp: string
     capacity: number
     selected: number
+    waitlisted: number | null
     willingness: string
     scheduleLines: string[]
     detailUrl: string
@@ -64,6 +65,7 @@ export interface ElectedCourse extends CourseSection {
     willingnessUpdateLink: HTMLAnchorElement | null
     willingnessMin: string
     willingnessMax: string
+    selectionStatus: string
 }
 
 export interface ElectedSummary {

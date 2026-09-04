@@ -160,6 +160,7 @@ export default defineContentScript({
                                     requiresCaptcha={isSupplement}
                                     showHomeButton
                                     electedHeading={isSupplement ? '已选上列表' : '已选列表'}
+                                    electedIsSupplement={isSupplement}
                                     viewStateKey={
                                         isPlanQuery
                                             ? 'course-plan'

@@ -259,6 +259,12 @@ select:focus {
     margin-bottom: 16px;
 }
 
+.elected-card--waitlisted {
+    border-style: dashed;
+    border-color: var(--hairline-strong);
+    background: color-mix(in srgb, var(--ink) 4%, var(--canvas));
+}
+
 .course-card__top {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 208px;
