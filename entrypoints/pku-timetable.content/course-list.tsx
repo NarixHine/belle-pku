@@ -515,13 +515,11 @@ function CourseCard({
             : null
     const waitlisted = course.waitlisted
     const waitlistOverflow =
-        requiresCaptcha && vacancies !== null && waitlisted !== null && waitlisted > vacancies
-    const progress = Math.min(
-        100,
-        ((requiresCaptcha && vacancies !== null ? vacancies : (course.selected ?? 0)) /
-            Math.max(1, course.capacity ?? 0)) *
-            100,
-    )
+        requiresCaptcha && vacancies !== null && waitlisted !== null && waitlisted >= vacancies
+    const progress =
+        requiresCaptcha && vacancies !== null && waitlisted !== null
+            ? Math.min(100, (waitlisted / Math.max(1, vacancies)) * 100)
+            : Math.min(100, ((course.selected ?? 0) / Math.max(1, course.capacity ?? 0)) * 100)
     const overCapacity = !requiresCaptcha && demand >= 1
     const badges = [
         ...course.teacher
@@ -613,7 +611,7 @@ function CourseCard({
                                 <span class='metric__label'>
                                     {requiresCaptcha ? '候补 / 空缺' : '已选 / 限数'}
                                 </span>
-                                <strong class={overCapacity ? 'is-danger' : ''}>
+                                <strong class={overCapacity || waitlistOverflow ? 'is-danger' : ''}>
                                     {requiresCaptcha && vacancies !== null ? (
                                         <>
                                             <span>{waitlisted ?? '-'}</span>
@@ -643,16 +641,18 @@ function CourseCard({
                                     aria-valuenow={course.selected}
                                 >
                                     <span
-                                        class={overCapacity ? 'is-over' : ''}
+                                        class={overCapacity || waitlistOverflow ? 'is-over' : ''}
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
                                 <span class='metric__hint'>
-                                    {requiresCaptcha && vacancies !== null
-                                        ? `空缺 ${vacancies} 人`
-                                        : overCapacity
-                                          ? `超出容量 ${course.selected - course.capacity} 人`
-                                          : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
+                                    {waitlistOverflow && waitlisted !== null && vacancies !== null
+                                        ? `溢出 ${waitlisted - vacancies} 人`
+                                        : requiresCaptcha && vacancies !== null
+                                          ? `空缺 ${vacancies} 人`
+                                          : overCapacity
+                                            ? `超出容量 ${course.selected - course.capacity} 人`
+                                            : `剩余 ${Math.max(0, course.capacity - course.selected)} 个名额`}
                                 </span>
                             </div>
                         ) : null}
