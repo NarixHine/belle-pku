@@ -84,7 +84,7 @@ export default defineContentScript({
                             table.setAttribute(HIDDEN_TABLE_ATTRIBUTE, 'true')
                             table.style.setProperty('display', 'none', 'important')
                             const isPlanQuery = courses[0]?.actionLabel === '加入选课计划'
-                            const isSupplement = courses[0]?.actionLabel === '补选'
+                            const isSupplement = courses[0]?.requiresCaptcha === true
                             const supplementElectedTable = isSupplement
                                 ? findSupplementElectedTable()
                                 : null
@@ -160,7 +160,6 @@ export default defineContentScript({
                                     requiresCaptcha={isSupplement}
                                     showHomeButton
                                     electedHeading={isSupplement ? '已选上列表' : '已选列表'}
-                                    electedIsSupplement={isSupplement}
                                     viewStateKey={
                                         isPlanQuery
                                             ? 'course-plan'

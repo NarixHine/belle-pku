@@ -28,7 +28,6 @@ interface CourseListProps {
     requiresCaptcha?: boolean
     showHomeButton?: boolean
     electedHeading?: string
-    electedIsSupplement?: boolean
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
@@ -117,7 +116,6 @@ export function CourseList({
     requiresCaptcha = false,
     showHomeButton = false,
     electedHeading = '已选列表',
-    electedIsSupplement = false,
 }: CourseListProps) {
     const [viewState, setViewState] = useState<CourseViewState>(() => ({
         ...defaultCourseViewState,
@@ -276,7 +274,6 @@ export function CourseList({
                     pagination={electedPagination}
                     hint={electedHint}
                     heading={electedHeading}
-                    isSupplement={electedIsSupplement}
                 />
             ) : null}
         </main>
@@ -289,14 +286,12 @@ function ElectedCourseList({
     pagination,
     hint,
     heading,
-    isSupplement,
 }: {
     courses: ElectedCourse[]
     summary: ElectedSummary | null
     pagination: CoursePagination | null
     hint: string
     heading: string
-    isSupplement: boolean
 }) {
     return (
         <section class='elected-section' aria-labelledby='elected-heading'>
@@ -321,11 +316,7 @@ function ElectedCourseList({
             </header>
             <div class='course-list elected-list' aria-label='已选课程列表'>
                 {courses.map(course => (
-                    <ElectedCourseCard
-                        course={course}
-                        isSupplement={isSupplement}
-                        key={course.id}
-                    />
+                    <ElectedCourseCard course={course} key={course.id} />
                 ))}
             </div>
             {pagination && pagination.totalPages > 1 ? (
@@ -335,13 +326,7 @@ function ElectedCourseList({
     )
 }
 
-function ElectedCourseCard({
-    course,
-    isSupplement,
-}: {
-    course: ElectedCourse
-    isSupplement: boolean
-}) {
+function ElectedCourseCard({ course }: { course: ElectedCourse }) {
     const [willingness, setWillingness] = useState(course.willingness)
     const badges = [
         ...course.teacher
@@ -403,15 +388,15 @@ function ElectedCourseCard({
                     </div>
                     <div class='metric metric--capacity'>
                         <span class='metric__label'>
-                            {isSupplement ? '候补 / 空缺' : '已选 / 限数'}
+                            {course.waitlisted !== null ? '候补 / 空缺' : '已选 / 限数'}
                         </span>
                         <strong>
                             <span>
-                                {isSupplement ? (course.waitlisted ?? '-') : course.selected}
+                                {course.waitlisted !== null ? course.waitlisted : course.selected}
                             </span>
                             <small>
                                 <span>/</span>
-                                {isSupplement
+                                {course.waitlisted !== null
                                     ? Math.max(0, course.capacity - course.selected)
                                     : course.capacity}
                             </small>
@@ -514,10 +499,11 @@ function CourseCard({
             ? Math.max(0, course.capacity - course.selected)
             : null
     const waitlisted = course.waitlisted
-    const waitlistOverflow =
-        requiresCaptcha && vacancies !== null && waitlisted !== null && waitlisted >= vacancies
+    const usesWaitlistMetric = waitlisted !== null
+    const waitlistOverflow = usesWaitlistMetric && vacancies !== null && waitlisted >= vacancies
+    const noVacancies = vacancies === 0
     const progress =
-        requiresCaptcha && vacancies !== null && waitlisted !== null
+        usesWaitlistMetric && vacancies !== null
             ? Math.min(100, (waitlisted / Math.max(1, vacancies)) * 100)
             : Math.min(100, ((course.selected ?? 0) / Math.max(1, course.capacity ?? 0)) * 100)
     const overCapacity = !requiresCaptcha && demand >= 1
@@ -609,10 +595,16 @@ function CourseCard({
                         {course.capacity !== null && course.selected !== null ? (
                             <div class='metric metric--capacity'>
                                 <span class='metric__label'>
-                                    {requiresCaptcha ? '候补 / 空缺' : '已选 / 限数'}
+                                    {usesWaitlistMetric ? '候补 / 空缺' : '已选 / 限数'}
                                 </span>
-                                <strong class={overCapacity || waitlistOverflow ? 'is-danger' : ''}>
-                                    {requiresCaptcha && vacancies !== null ? (
+                                <strong
+                                    class={
+                                        overCapacity || waitlistOverflow || noVacancies
+                                            ? 'is-danger'
+                                            : ''
+                                    }
+                                >
+                                    {usesWaitlistMetric && vacancies !== null ? (
                                         <>
                                             <span>{waitlisted ?? '-'}</span>
                                             <small>
@@ -634,21 +626,27 @@ function CourseCard({
                                     class='progress'
                                     role='progressbar'
                                     aria-label={
-                                        requiresCaptcha ? '候补人数 / 空缺数' : '已选人数占限数比例'
+                                        usesWaitlistMetric
+                                            ? '候补人数 / 空缺数'
+                                            : '已选人数占限数比例'
                                     }
                                     aria-valuemin={0}
                                     aria-valuemax={course.capacity}
                                     aria-valuenow={course.selected}
                                 >
                                     <span
-                                        class={overCapacity || waitlistOverflow ? 'is-over' : ''}
+                                        class={
+                                            overCapacity || waitlistOverflow || noVacancies
+                                                ? 'is-over'
+                                                : ''
+                                        }
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
                                 <span class='metric__hint'>
                                     {waitlistOverflow && waitlisted !== null && vacancies !== null
                                         ? `溢出 ${waitlisted - vacancies} 人`
-                                        : requiresCaptcha && vacancies !== null
+                                        : usesWaitlistMetric && vacancies !== null
                                           ? `空缺 ${vacancies} 人`
                                           : overCapacity
                                             ? `超出容量 ${course.selected - course.capacity} 人`

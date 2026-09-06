@@ -242,8 +242,16 @@ export function parseActionableCourses(
         table.querySelectorAll<HTMLTableRowElement>('tr.datagrid-even, tr.datagrid-odd'),
     ).flatMap(row => {
         const section = parseCourseRow(row)
-        const actionLink = row.querySelector<HTMLAnchorElement>(`a[href*="${resolvedActionPath}"]`)
+        const actionLink =
+            row.querySelector<HTMLAnchorElement>(`a[href*="${resolvedActionPath}"]`) ??
+            (resolvedActionPath === 'electSupplement.do'
+                ? (Array.from(row.querySelectorAll<HTMLAnchorElement>('a')).find(link =>
+                      /^(补选|刷新)$/.test(link.textContent?.replace(/\s+/g, '').trim() ?? ''),
+                  ) ?? null)
+                : null)
         if (!section || !actionLink) return []
+        const rowActionLabel =
+            actionLink.textContent?.replace(/\s+/g, '').trim() || resolvedActionLabel
 
         const [capacity, selected, waitlisted] = parseCapacity(cellText(row, columns.capacity))
         const actionCellIndex = actionLink.closest('td')?.cellIndex ?? -1
@@ -276,7 +284,7 @@ export function parseActionableCourses(
                 detailUrl:
                     row.querySelector<HTMLAnchorElement>('a[href*="goNested.do"]')?.href || '',
                 actionLink,
-                actionLabel: resolvedActionLabel,
+                actionLabel: rowActionLabel,
                 requiresCaptcha,
                 captchaInputs,
                 captchaImageSrc,

@@ -67,12 +67,19 @@ bun run zip:firefox
 
 The content script mounts on supported routes, parses the elected schedule, and replaces the selectable table with course cards in an isolated Shadow DOM. Table mutations redraw the card list, route changes tear down the UI and restore the source table, and invalidation cleans up everything.
 
+## URL Map
+
+- `/electiveWork/ElectiveWorkController.jpf`: 预选 candidate table and live 已选列表; refreshes the schedule cache.
+- `/electiveWork/showResults.do`: 选课结果 history; valid `已选上` rows refresh the schedule cache, while `未选上` rows are excluded.
+- `/courseQuery/getCurriculmByForm.do`: 加入选课计划 candidate table; supports optional/query-specific fields and cached schedule fallback.
+- `/supplement/SupplyCancel.do?xh=<student-id>`: 补退选 candidate table plus 已选上列表; supports native `补选`/`刷新`, captcha gating, flexible capacity schemas, and schedule-cache refresh.
+
 ## Behavior
 
 - Runs on supported `https://elective.pku.edu.cn/elective2008/...` elective-work, course-query, and supplement (`补退选`) routes.
 - Replaces actionable tables with shared course cards in an isolated Shadow DOM while preserving native course details, actions, inputs, and pagination links. Mutation redraws are defensive because the portal replaces table DOM independently.
 - `预选`, `加入选课计划`, and `补选` candidate tables share parsing and rendering. Optional/query-specific fields are tolerated; unknown non-core fields become badges.
-- `补退选` candidate cards require a non-empty lowercase captcha before enabling `补选`. Extension captcha inputs, portal `validCode` inputs, and the captcha image stay synchronized.
+- `补退选` candidate cards require a non-empty lowercase captcha before enabling the native action; each row preserves its native `补选` or full-course `刷新` label and destination. Extension captcha inputs, portal `validCode` inputs, and the captcha image stay synchronized.
 - Candidate metrics are route-specific: 预选 uses `已选 / 限数`; 补退选 uses `候补 / 空缺`, with `空缺 = max(0, 限数 - 已选)`. Supplement progress is `候补 / 空缺`, capped at 100%, and shows red `溢出 n 人` when `候补 >= 空缺`.
 - Candidate pagination uses the native `First`, `Previous`, `Next`, and `Last` links. 首页 triggers native `First` and appears for candidate tables, including 加入选课计划; selected-course pagination omits 首页.
 - 已选列表 and 补退选的已选上列表 share the selected-course renderer. Supplement selected metrics use `候补 / 空缺`; 预选 selected metrics retain `已选 / 限数`.
