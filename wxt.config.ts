@@ -2,8 +2,8 @@ import { defineConfig } from 'wxt'
 
 export default defineConfig({
     manifest: {
-        name: 'Belle PKU Timetable',
-        description: 'Preview PKU elective course sections on your current timetable.',
+        name: 'Belle PKU',
+        description: 'Better PKU elective course UI.',
         permissions: [],
         browser_specific_settings: {
             gecko: {
