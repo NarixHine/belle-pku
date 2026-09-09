@@ -160,6 +160,12 @@ export default defineContentScript({
                                     requiresCaptcha={isSupplement}
                                     showHomeButton
                                     electedHeading={isSupplement ? '已选上列表' : '已选列表'}
+                                    electedCaptchaInputs={
+                                        isSupplement ? courses[0]?.captchaInputs : undefined
+                                    }
+                                    electedCaptchaImageSrc={
+                                        isSupplement ? courses[0]?.captchaImageSrc : undefined
+                                    }
                                     viewStateKey={
                                         isPlanQuery
                                             ? 'course-plan'

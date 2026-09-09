@@ -28,6 +28,8 @@ interface CourseListProps {
     requiresCaptcha?: boolean
     showHomeButton?: boolean
     electedHeading?: string
+    electedCaptchaInputs?: HTMLInputElement[]
+    electedCaptchaImageSrc?: string
 }
 
 type SortKey = 'default' | 'availability' | 'demand' | 'credits'
@@ -116,6 +118,8 @@ export function CourseList({
     requiresCaptcha = false,
     showHomeButton = false,
     electedHeading = '已选列表',
+    electedCaptchaInputs = [],
+    electedCaptchaImageSrc = '',
 }: CourseListProps) {
     const [viewState, setViewState] = useState<CourseViewState>(() => ({
         ...defaultCourseViewState,
@@ -274,6 +278,8 @@ export function CourseList({
                     pagination={electedPagination}
                     hint={electedHint}
                     heading={electedHeading}
+                    captchaInputs={electedCaptchaInputs}
+                    captchaImageSrc={electedCaptchaImageSrc}
                 />
             ) : null}
         </main>
@@ -286,12 +292,16 @@ function ElectedCourseList({
     pagination,
     hint,
     heading,
+    captchaInputs,
+    captchaImageSrc,
 }: {
     courses: ElectedCourse[]
     summary: ElectedSummary | null
     pagination: CoursePagination | null
     hint: string
     heading: string
+    captchaInputs: HTMLInputElement[]
+    captchaImageSrc: string
 }) {
     return (
         <section class='elected-section' aria-labelledby='elected-heading'>
@@ -316,7 +326,12 @@ function ElectedCourseList({
             </header>
             <div class='course-list elected-list' aria-label='已选课程列表'>
                 {courses.map(course => (
-                    <ElectedCourseCard course={course} key={course.id} />
+                    <ElectedCourseCard
+                        captchaImageSrc={captchaImageSrc}
+                        captchaInputs={captchaInputs}
+                        course={course}
+                        key={course.id}
+                    />
                 ))}
             </div>
             {pagination && pagination.totalPages > 1 ? (
@@ -326,8 +341,36 @@ function ElectedCourseList({
     )
 }
 
-function ElectedCourseCard({ course }: { course: ElectedCourse }) {
+function ElectedCourseCard({
+    captchaImageSrc,
+    captchaInputs,
+    course,
+}: {
+    captchaImageSrc: string
+    captchaInputs: HTMLInputElement[]
+    course: ElectedCourse
+}) {
     const [willingness, setWillingness] = useState(course.willingness)
+    const [captcha, setCaptcha] = useState((captchaInputs[0]?.value ?? '').toLowerCase())
+    const requiresCaptcha = captchaInputs.length > 0
+    useEffect(() => {
+        const syncCaptcha = (event: Event) => {
+            const value = (event as CustomEvent<string>).detail
+            if (typeof value === 'string') setCaptcha(value)
+        }
+        window.addEventListener('belle-pku-captcha', syncCaptcha)
+        return () => window.removeEventListener('belle-pku-captcha', syncCaptcha)
+    }, [])
+    const updateCaptcha = (value: string) => {
+        const normalizedValue = value.toLowerCase()
+        setCaptcha(normalizedValue)
+        captchaInputs.forEach(input => {
+            input.value = normalizedValue
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+            input.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        window.dispatchEvent(new CustomEvent('belle-pku-captcha', { detail: normalizedValue }))
+    }
     const badges = [
         ...course.teacher
             .split(',')
@@ -443,10 +486,28 @@ function ElectedCourseCard({ course }: { course: ElectedCourse }) {
                     <button
                         type='button'
                         class='cancel-button'
+                        disabled={requiresCaptcha && !captcha.trim()}
                         onClick={() => course.cancelLink.click()}
                     >
                         取消
                     </button>
+                    {requiresCaptcha ? (
+                        <label class='captcha-control'>
+                            <span>验证码</span>
+                            <span class='captcha-control__fields'>
+                                <input
+                                    type='text'
+                                    value={captcha}
+                                    maxLength={5}
+                                    onInput={event => updateCaptcha(event.currentTarget.value)}
+                                    aria-label='取消验证码'
+                                />
+                                {captchaImageSrc ? (
+                                    <img src={captchaImageSrc} alt='验证码图片' />
+                                ) : null}
+                            </span>
+                        </label>
+                    ) : null}
                 </div>
             </div>
         </article>
