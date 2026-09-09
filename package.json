@@ -2,7 +2,7 @@
     "name": "belle-pku",
     "description": "Better PKU elective course selection UI.",
     "private": true,
-    "version": "0.0.8",
+    "version": "0.0.10",
     "type": "module",
     "scripts": {
         "dev": "wxt",

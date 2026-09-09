@@ -7,7 +7,7 @@ Belle PKU is a browser extension that embellishes and humanizes the interface of
 Choose the download channel based on your browser:
 
 - [Chrome](https://chromewebstore.google.com/detail/belle-pku-timetable/pmijdcfijpfgjaimgggcmeoigaejjooj)
-- [Firefox](https://belle-pku-assets.time.florist/xpi/belle-pku-0.0.7.xpi)
+- [Firefox](https://belle-pku-assets.time.florist/xpi/belle-pku-0.0.10.xpi)
 
 ### UI Preview
 
